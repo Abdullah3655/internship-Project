@@ -1,0 +1,3 @@
+Bob Jones
+bob.sample@example.com
+Skills: Python, MySQL

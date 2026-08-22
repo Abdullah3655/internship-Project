@@ -1,0 +1,636 @@
+{
+  "info": {
+    "name": "Recruitment Platform",
+    "description": "Auth :8081, candidates :8082, applications :8083. Demo login: hr@company.com / password123.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const token = json.accessToken || json.token;",
+                  "    if (token) {",
+                  "        pm.environment.set('access_token', token);",
+                  "    } else {",
+                  "        pm.environment.unset('access_token');",
+                  "    }",
+                  "    if (json.user && json.user.id && json.user.role === 'INTERVIEWER') {",
+                  "        pm.environment.set('interviewer_user_id', json.user.id);",
+                  "    }",
+                  "} else {",
+                  "    pm.environment.unset('access_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Login LDAP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const token = json.accessToken || json.token;",
+                  "    if (token) {",
+                  "        pm.environment.set('access_token', token);",
+                  "    } else {",
+                  "        pm.environment.unset('access_token');",
+                  "    }",
+                  "} else {",
+                  "    pm.environment.unset('access_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ldap.hr@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id && json.role === 'INTERVIEWER') {",
+                  "        pm.environment.set('interviewer_user_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{auth_base_url}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{auth_base_url}}/api/auth/users/{{interviewer_user_id}}",
+            "description": "Login as interviewer first to capture interviewer_user_id."
+          }
+        },
+        {
+          "name": "Register HR",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.hr@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Nina\",\n  \"lastName\": \"Recruiter\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/register/hr"
+          }
+        },
+        {
+          "name": "Register Interviewer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"new.interviewer@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Omar\",\n  \"lastName\": \"Interviewer\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/register/interviewer"
+          }
+        },
+        {
+          "name": "Register LDAP HR",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ldap.new.hr@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Lara\",\n  \"lastName\": \"LDAP\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/register/ldap/hr",
+            "description": "Admin only. Creates LDAP + auth_db user."
+          }
+        },
+        {
+          "name": "Register LDAP Interviewer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ldap.new.interviewer@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Sam\",\n  \"lastName\": \"LDAP\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/register/ldap/interviewer",
+            "description": "Admin only. Creates LDAP + auth_db user."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Candidates",
+      "item": [
+        {
+          "name": "Create Candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) {",
+                  "        pm.environment.set('candidate_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Smith\",\n  \"email\": \"alice@example.com\",\n  \"phone\": \"+1234567890\",\n  \"tags\": [\"java\", \"spring\"]\n}"
+            },
+            "url": "{{candidate_base_url}}/api/candidates"
+          }
+        },
+        {
+          "name": "List Candidates",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": {
+              "raw": "{{candidate_base_url}}/api/candidates?tag=java",
+              "host": ["{{candidate_base_url}}"],
+              "path": ["api", "candidates"],
+              "query": [
+                { "key": "tag", "value": "java", "description": "Optional. Omit to list all." }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Candidate",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}"
+          }
+        },
+        {
+          "name": "Update Candidate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"talentStatus\": \"IN_POOL\",\n  \"tags\": [\"java\", \"senior\"]\n}"
+            },
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}"
+          }
+        },
+        {
+          "name": "Delete Candidate",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}",
+            "description": "Soft delete. Returns 204."
+          }
+        },
+        {
+          "name": "Upload CV",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "CV file (form-data, type File)"
+                }
+              ]
+            },
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}/cv",
+            "description": "Upload CV for parsing."
+          }
+        },
+        {
+          "name": "Bulk Upload CVs",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "description": "CV file"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "description": "Optional second file"
+                }
+              ]
+            },
+            "url": "{{candidate_base_url}}/api/candidates/cv/bulk",
+            "description": "Multipart form-data, field name files."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "item": [
+        {
+          "name": "Create Job",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) {",
+                  "        pm.environment.set('job_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java Engineer\",\n  \"department\": \"Engineering\",\n  \"location\": \"Remote\",\n  \"description\": \"Backend development\",\n  \"employmentType\": \"FULL_TIME\",\n  \"tags\": [\"java\", \"spring\", \"mysql\"]\n}"
+            },
+            "url": "{{application_base_url}}/api/jobs"
+          }
+        },
+        {
+          "name": "List Jobs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": {
+              "raw": "{{application_base_url}}/api/jobs?status=PUBLISHED&tag=java",
+              "host": ["{{application_base_url}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                { "key": "status", "value": "PUBLISHED", "description": "Optional. DRAFT, PUBLISHED, CLOSED" },
+                { "key": "tag", "value": "java", "description": "Optional skill tag filter" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Job",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/jobs/{{job_id}}"
+          }
+        },
+        {
+          "name": "Update Job",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": \"Amman\",\n  \"description\": \"Updated job description\",\n  \"tags\": [\"java\", \"spring\", \"kafka\"]\n}"
+            },
+            "url": "{{application_base_url}}/api/jobs/{{job_id}}"
+          }
+        },
+        {
+          "name": "Publish Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/jobs/{{job_id}}/publish"
+          }
+        },
+        {
+          "name": "Delete Job",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/jobs/{{job_id}}",
+            "description": "409 if applications exist."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Applications",
+      "item": [
+        {
+          "name": "Create Application",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) {",
+                  "        pm.environment.set('application_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jobId\": \"{{job_id}}\",\n  \"candidateId\": \"{{candidate_id}}\"\n}"
+            },
+            "url": "{{application_base_url}}/api/applications"
+          }
+        },
+        {
+          "name": "List Applications",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": {
+              "raw": "{{application_base_url}}/api/applications?jobId={{job_id}}&stage=INTERVIEW",
+              "host": ["{{application_base_url}}"],
+              "path": ["api", "applications"],
+              "query": [
+                { "key": "jobId", "value": "{{job_id}}", "description": "Optional" },
+                { "key": "candidateId", "value": "{{candidate_id}}", "disabled": true },
+                { "key": "stage", "value": "INTERVIEW", "description": "Optional: APPLIED, SCREENING, INTERVIEW, OFFER, HIRED, DISQUALIFIED" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}"
+          }
+        },
+        {
+          "name": "Change Stage",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toStage\": \"INTERVIEW\",\n  \"note\": \"Passed screening\"\n}"
+            },
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes"
+          }
+        },
+        {
+          "name": "List Stage Changes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes"
+          }
+        },
+        {
+          "name": "Assign Interviewer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{interviewer_user_id}}\",\n  \"assignmentRole\": \"INTERVIEWER\"\n}"
+            },
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments"
+          }
+        },
+        {
+          "name": "List Assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments"
+          }
+        },
+        {
+          "name": "My Assignments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/assignments",
+            "description": "Assignments for current JWT user."
+          }
+        },
+        {
+          "name": "Create Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 4,\n  \"feedback\": \"Strong Java skills\"\n}"
+            },
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations"
+          }
+        },
+        {
+          "name": "List Evaluations",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations"
+          }
+        },
+        {
+          "name": "Delete Evaluation",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations/{{evaluation_id}}",
+            "description": "Set evaluation_id from List Evaluations response."
+          }
+        },
+        {
+          "name": "Delete Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments/{{assignment_id}}",
+            "description": "Set assignment_id from List Assignments response."
+          }
+        },
+        {
+          "name": "Delete Application",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{application_base_url}}/api/applications/{{application_id}}",
+            "description": "Removes application and related stage events, assignments, evaluations."
+          }
+        },
+        {
+          "name": "Change Stage to HIRED",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"toStage\": \"HIRED\",\n  \"note\": \"Offer accepted\"\n}"
+            },
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes",
+            "description": "Sets candidate talentStatus to HIRED."
+          }
+        }
+      ]
+    }
+  ]
+}

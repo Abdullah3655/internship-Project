@@ -1,0 +1,9 @@
+.idea/
+*.iml
+.vscode/
+
+**/target/
+**/uploads/
+
+.DS_Store
+Thumbs.db
