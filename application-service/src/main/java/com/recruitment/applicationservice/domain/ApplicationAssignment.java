@@ -5,8 +5,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -26,7 +24,6 @@ import java.util.UUID;
 public class ApplicationAssignment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(length = 36, nullable = false, updatable = false)
     private UUID id;
@@ -49,11 +46,18 @@ public class ApplicationAssignment {
 
     @PrePersist
     void onCreate() {
+        if (id == null) {
+            id = UUID.randomUUID();
+        }
         createdAt = Instant.now();
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public Application getApplication() {

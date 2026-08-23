@@ -92,7 +92,7 @@ public class AuthController {
     }
 
     @GetMapping(path = "/users/{id}", version = "1.0")
-    @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public UserResponse getUserById(@PathVariable UUID id) {
         return authService.getById(id);
     }

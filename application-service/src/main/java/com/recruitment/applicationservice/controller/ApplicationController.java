@@ -61,15 +61,19 @@ public class ApplicationController {
     public ApplicationListResponse list(
             @RequestParam(required = false) UUID jobId,
             @RequestParam(required = false) UUID candidateId,
-            @RequestParam(required = false) PipelineStage stage
+            @RequestParam(required = false) PipelineStage stage,
+            @AuthenticationPrincipal UserPrincipal actor
     ) {
-        return applicationTrackingService.list(jobId, candidateId, stage);
+        return applicationTrackingService.list(jobId, candidateId, stage, actor);
     }
 
     @GetMapping(path = "/{id}", version = "1.0")
     @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
-    public ApplicationResponse getById(@PathVariable UUID id) {
-        return applicationTrackingService.getById(id);
+    public ApplicationResponse getById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal actor
+    ) {
+        return applicationTrackingService.getById(id, actor);
     }
 
     @DeleteMapping(path = "/{id}", version = "1.0")
@@ -93,8 +97,11 @@ public class ApplicationController {
 
     @GetMapping(path = "/{id}/stage-changes", version = "1.0")
     @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
-    public StageEventListResponse listStageChanges(@PathVariable UUID id) {
-        return applicationTrackingService.listStageChanges(id);
+    public StageEventListResponse listStageChanges(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal actor
+    ) {
+        return applicationTrackingService.listStageChanges(id, actor);
     }
 
     @PostMapping(path = "/{id}/assignments", version = "1.0")
@@ -117,12 +124,15 @@ public class ApplicationController {
 
     @GetMapping(path = "/{id}/assignments", version = "1.0")
     @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
-    public AssignmentListResponse listAssignments(@PathVariable UUID id) {
-        return applicationTrackingService.listAssignments(id);
+    public AssignmentListResponse listAssignments(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal actor
+    ) {
+        return applicationTrackingService.listAssignments(id, actor);
     }
 
     @PostMapping(path = "/{id}/evaluations", version = "1.0")
-    @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
+    @PreAuthorize("hasRole('INTERVIEWER')")
     @ResponseStatus(HttpStatus.CREATED)
     public EvaluationResponse evaluate(
             @PathVariable UUID id,
@@ -141,7 +151,10 @@ public class ApplicationController {
 
     @GetMapping(path = "/{id}/evaluations", version = "1.0")
     @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
-    public EvaluationListResponse listEvaluations(@PathVariable UUID id) {
-        return applicationTrackingService.listEvaluations(id);
+    public EvaluationListResponse listEvaluations(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserPrincipal actor
+    ) {
+        return applicationTrackingService.listEvaluations(id, actor);
     }
 }

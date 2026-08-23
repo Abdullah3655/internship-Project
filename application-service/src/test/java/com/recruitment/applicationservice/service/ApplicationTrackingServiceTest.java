@@ -128,7 +128,7 @@ class ApplicationTrackingServiceTest {
     @Test
     void changeStageToHiredCallsCandidateService() {
         Application application = application(PipelineStage.OFFER);
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application));
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
         when(applicationRepository.save(any(Application.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(stageEventRepository.save(any(ApplicationStageEvent.class))).thenAnswer(invocation -> {
             ApplicationStageEvent event = invocation.getArgument(0);
@@ -153,7 +153,7 @@ class ApplicationTrackingServiceTest {
         ApplicationAssignment assignment = new ApplicationAssignment();
         ApplicationStageEvent stageEvent = new ApplicationStageEvent();
 
-        when(applicationRepository.findById(APPLICATION_ID)).thenReturn(Optional.of(application));
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
         when(evaluationRepository.findByApplicationIdOrderByCreatedAtDesc(APPLICATION_ID))
                 .thenReturn(List.of(evaluation));
         when(assignmentRepository.findByApplicationIdOrderByCreatedAtAsc(APPLICATION_ID))
@@ -167,6 +167,46 @@ class ApplicationTrackingServiceTest {
         verify(assignmentRepository).deleteAll(eq(List.of(assignment)));
         verify(stageEventRepository).deleteAll(eq(List.of(stageEvent)));
         verify(applicationRepository).delete(application);
+    }
+
+    @Test
+    void evaluateRequiresAssignmentForInterviewer() {
+        UserPrincipal interviewer = new UserPrincipal(
+                UUID.fromString("77777777-7777-7777-7777-777777777777"),
+                "interviewer@company.com",
+                "INTERVIEWER"
+        );
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID))
+                .thenReturn(Optional.of(application(PipelineStage.INTERVIEW)));
+        when(assignmentRepository.existsByApplicationIdAndUserId(APPLICATION_ID, interviewer.getId()))
+                .thenReturn(false);
+
+        assertThatThrownBy(() -> applicationTrackingService.evaluate(
+                APPLICATION_ID,
+                new com.recruitment.applicationservice.dto.CreateEvaluationRequest(4, "ok"),
+                interviewer
+        )).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+        verify(evaluationRepository, never()).save(any());
+    }
+
+    @Test
+    void assignRequiresInterviewerRole() {
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID))
+                .thenReturn(Optional.of(application(PipelineStage.INTERVIEW)));
+        doThrow(new BadRequestException("Assigned user must have INTERVIEWER role"))
+                .when(authServiceClient).requireInterviewer(eq(CANDIDATE_ID), eq(AUTH));
+
+        assertThatThrownBy(() -> applicationTrackingService.assign(
+                APPLICATION_ID,
+                new com.recruitment.applicationservice.dto.CreateAssignmentRequest(
+                        CANDIDATE_ID,
+                        com.recruitment.applicationservice.domain.AssignmentRole.INTERVIEWER
+                ),
+                AUTH
+        )).isInstanceOf(BadRequestException.class);
+
+        verify(assignmentRepository, never()).save(any());
     }
 
     private static Job publishedJob() {

@@ -141,7 +141,7 @@ public class AuthService {
     }
 
     private AuthResponse toAuthResponse(User user) {
-        String token = jwtService.createToken(user);
-        return AuthResponse.of(token, jwtService.getExpirationMs(), UserResponse.from(user));
+        return AuthResponse.of(jwtService.createToken(user));
     }
 }
+

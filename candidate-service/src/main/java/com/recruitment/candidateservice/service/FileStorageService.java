@@ -2,6 +2,7 @@ package com.recruitment.candidateservice.service;
 
 import com.recruitment.candidateservice.config.FileUploadProperties;
 import com.recruitment.candidateservice.exception.InvalidFileException;
+import com.recruitment.candidateservice.exception.StorageException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -32,7 +33,7 @@ public class FileStorageService {
         try {
             bytes = file.getBytes();
         } catch (IOException ex) {
-            throw new IllegalStateException("Could not store CV", ex);
+            throw new InvalidFileException("Could not read CV file");
         }
         if (bytes.length == 0) {
             throw new InvalidFileException(
@@ -61,7 +62,7 @@ public class FileStorageService {
             Files.write(destination, bytes);
             return new StoredFile(original, destination.toString(), contentType, bytes.length);
         } catch (IOException ex) {
-            throw new IllegalStateException("Could not store CV", ex);
+            throw new StorageException("Could not store CV on server", ex);
         }
     }
 

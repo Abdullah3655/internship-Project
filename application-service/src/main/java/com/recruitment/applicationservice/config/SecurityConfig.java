@@ -47,9 +47,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/applications", "/api/applications/{id}",
                                 "/api/applications/{id}/stage-changes",
                                 "/api/applications/{id}/assignments",
-                                "/api/applications/{id}/evaluations",
-                                "/api/assignments")
+                                "/api/applications/{id}/evaluations")
                         .hasAnyRole("HR", "ADMIN", "INTERVIEWER")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments")
+                        .hasRole("INTERVIEWER")
                         .requestMatchers(HttpMethod.POST, "/api/applications",
                                 "/api/applications/{id}/stage-changes",
                                 "/api/applications/{id}/assignments")
@@ -59,7 +60,7 @@ public class SecurityConfig {
                                 "/api/applications/{id}/evaluations/{evaluationId}")
                         .hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/applications/{id}/evaluations")
-                        .hasAnyRole("HR", "ADMIN", "INTERVIEWER")
+                        .hasRole("INTERVIEWER")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) ->

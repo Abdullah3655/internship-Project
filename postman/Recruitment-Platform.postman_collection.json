@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Recruitment Platform",
-    "description": "Auth :8081, candidates :8082, applications :8083. Demo login: hr@company.com / password123.",
+    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples: postman/samples/Alice_CV.txt and Bob_CV.txt (attach as File in Upload requests).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -19,7 +19,7 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Login",
+          "name": "Login (HR)",
           "event": [
             {
               "listen": "test",
@@ -32,9 +32,6 @@
                   "        pm.environment.set('access_token', token);",
                   "    } else {",
                   "        pm.environment.unset('access_token');",
-                  "    }",
-                  "    if (json.user && json.user.id && json.user.role === 'INTERVIEWER') {",
-                  "        pm.environment.set('interviewer_user_id', json.user.id);",
                   "    }",
                   "} else {",
                   "    pm.environment.unset('access_token');",
@@ -55,11 +52,88 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"hr@company.com\",\n  \"password\": \"password123\"\n}"
             },
-            "url": "{{auth_base_url}}/api/auth/login"
+            "url": "{{auth_base_url}}/api/auth/login",
+            "description": "Default demo login. Saves access_token."
           }
         },
         {
-          "name": "Login LDAP",
+          "name": "Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const token = json.accessToken || json.token;",
+                  "    if (token) {",
+                  "        pm.environment.set('access_token', token);",
+                  "    } else {",
+                  "        pm.environment.unset('access_token');",
+                  "    }",
+                  "} else {",
+                  "    pm.environment.unset('access_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/login",
+            "description": "Needed for register endpoints."
+          }
+        },
+        {
+          "name": "Login (Interviewer)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const token = json.accessToken || json.token;",
+                  "    if (token) {",
+                  "        pm.environment.set('access_token', token);",
+                  "    } else {",
+                  "        pm.environment.unset('access_token');",
+                  "    }",
+                  "} else {",
+                  "    pm.environment.unset('access_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"interviewer@company.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/login",
+            "description": "Use before My Assignments / Create Evaluation. interviewer_user_id is already in the Local env."
+          }
+        },
+        {
+          "name": "Login (LDAP HR)",
           "event": [
             {
               "listen": "test",
@@ -92,7 +166,8 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"ldap.hr@company.com\",\n  \"password\": \"password123\"\n}"
             },
-            "url": "{{auth_base_url}}/api/auth/login"
+            "url": "{{auth_base_url}}/api/auth/login",
+            "description": "Requires OpenLDAP container on port 1389."
           }
         },
         {
@@ -129,7 +204,7 @@
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": "{{auth_base_url}}/api/auth/users/{{interviewer_user_id}}",
-            "description": "Login as interviewer first to capture interviewer_user_id."
+            "description": "HR/ADMIN only."
           }
         },
         {
@@ -144,7 +219,8 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"new.hr@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Nina\",\n  \"lastName\": \"Recruiter\"\n}"
             },
-            "url": "{{auth_base_url}}/api/auth/register/hr"
+            "url": "{{auth_base_url}}/api/auth/register/hr",
+            "description": "ADMIN only. Login (Admin) first."
           }
         },
         {
@@ -159,7 +235,8 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"new.interviewer@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Omar\",\n  \"lastName\": \"Interviewer\"\n}"
             },
-            "url": "{{auth_base_url}}/api/auth/register/interviewer"
+            "url": "{{auth_base_url}}/api/auth/register/interviewer",
+            "description": "ADMIN only. Login (Admin) first."
           }
         },
         {
@@ -175,7 +252,7 @@
               "raw": "{\n  \"email\": \"ldap.new.hr@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Lara\",\n  \"lastName\": \"LDAP\"\n}"
             },
             "url": "{{auth_base_url}}/api/auth/register/ldap/hr",
-            "description": "Admin only. Creates LDAP + auth_db user."
+            "description": "ADMIN only. Creates LDAP + auth_db user."
           }
         },
         {
@@ -191,7 +268,7 @@
               "raw": "{\n  \"email\": \"ldap.new.interviewer@company.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"Sam\",\n  \"lastName\": \"LDAP\"\n}"
             },
             "url": "{{auth_base_url}}/api/auth/register/ldap/interviewer",
-            "description": "Admin only. Creates LDAP + auth_db user."
+            "description": "ADMIN only. Creates LDAP + auth_db user."
           }
         }
       ]
@@ -225,13 +302,31 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Smith\",\n  \"email\": \"alice@example.com\",\n  \"phone\": \"+1234567890\",\n  \"tags\": [\"java\", \"spring\"]\n}"
+              "raw": "{\n  \"firstName\": \"Carol\",\n  \"lastName\": \"Nguyen\",\n  \"email\": \"carol@example.com\",\n  \"phone\": \"+15559876543\",\n  \"tags\": [\"java\", \"kafka\"]\n}"
             },
-            "url": "{{candidate_base_url}}/api/candidates"
+            "url": "{{candidate_base_url}}/api/candidates",
+            "description": "Uses carol@example.com so it does not conflict with seeded Alice/Bob."
           }
         },
         {
           "name": "List Candidates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || json;",
+                  "    if (Array.isArray(items) && items.length > 0 && items[0].id) {",
+                  "        pm.environment.set('candidate_id', items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -242,7 +337,7 @@
               "host": ["{{candidate_base_url}}"],
               "path": ["api", "candidates"],
               "query": [
-                { "key": "tag", "value": "java", "description": "Optional. Omit to list all." }
+                { "key": "tag", "value": "java", "description": "Optional. Disable to list all." }
               ]
             }
           }
@@ -280,7 +375,7 @@
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}",
-            "description": "Soft delete. Returns 204."
+            "description": "Soft delete. Returns 204. Prefer deleting Carol, not seeded Alice, if you still need demo hiring data."
           }
         },
         {
@@ -296,12 +391,13 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "description": "CV file (form-data, type File)"
+                  "src": [],
+                  "description": "Attach postman/samples/Alice_CV.txt (or any .txt/.pdf/.docx supported by the service)"
                 }
               ]
             },
             "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}/cv",
-            "description": "Upload CV for parsing."
+            "description": "form-data field name: file."
           }
         },
         {
@@ -317,17 +413,19 @@
                 {
                   "key": "files",
                   "type": "file",
-                  "description": "CV file"
+                  "src": [],
+                  "description": "Attach postman/samples/Alice_CV.txt"
                 },
                 {
                   "key": "files",
                   "type": "file",
-                  "description": "Optional second file"
+                  "src": [],
+                  "description": "Optional second file: postman/samples/Bob_CV.txt"
                 }
               ]
             },
             "url": "{{candidate_base_url}}/api/candidates/cv/bulk",
-            "description": "Multipart form-data, field name files."
+            "description": "Multipart form-data, field name files (repeatable)."
           }
         }
       ]
@@ -361,13 +459,31 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Java Engineer\",\n  \"department\": \"Engineering\",\n  \"location\": \"Remote\",\n  \"description\": \"Backend development\",\n  \"employmentType\": \"FULL_TIME\",\n  \"tags\": [\"java\", \"spring\", \"mysql\"]\n}"
+              "raw": "{\n  \"title\": \"Backend Developer\",\n  \"department\": \"Engineering\",\n  \"location\": \"Amman\",\n  \"description\": \"APIs and integrations\",\n  \"employmentType\": \"FULL_TIME\",\n  \"tags\": [\"java\", \"spring\", \"mysql\"]\n}"
             },
-            "url": "{{application_base_url}}/api/jobs"
+            "url": "{{application_base_url}}/api/jobs",
+            "description": "Creates a new draft job. Seeded job is already Java Engineer (PUBLISHED)."
           }
         },
         {
           "name": "List Jobs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || [];",
+                  "    if (items.length > 0 && items[0].id) {",
+                  "        pm.environment.set('job_id', items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -416,7 +532,8 @@
             "header": [
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
-            "url": "{{application_base_url}}/api/jobs/{{job_id}}/publish"
+            "url": "{{application_base_url}}/api/jobs/{{job_id}}/publish",
+            "description": "Needed after Create Job before creating applications."
           }
         },
         {
@@ -463,11 +580,29 @@
               "mode": "raw",
               "raw": "{\n  \"jobId\": \"{{job_id}}\",\n  \"candidateId\": \"{{candidate_id}}\"\n}"
             },
-            "url": "{{application_base_url}}/api/applications"
+            "url": "{{application_base_url}}/api/applications",
+            "description": "Alice is already applied to the seeded Java Engineer job. For a new application: List Jobs / Create+Publish Job, set candidate_id to Bob (20000000-0000-4000-8000-000000000002) or Carol."
           }
         },
         {
           "name": "List Applications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || [];",
+                  "    if (items.length > 0 && items[0].id) {",
+                  "        pm.environment.set('application_id', items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -505,9 +640,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"toStage\": \"INTERVIEW\",\n  \"note\": \"Passed screening\"\n}"
+              "raw": "{\n  \"toStage\": \"SCREENING\",\n  \"note\": \"Moved to screening\"\n}"
             },
-            "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes"
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes",
+            "description": "Seeded Alice application is already at INTERVIEW. Adjust toStage as needed."
           }
         },
         {
@@ -522,6 +658,22 @@
         },
         {
           "name": "Assign Interviewer",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) {",
+                  "        pm.environment.set('assignment_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -532,11 +684,29 @@
               "mode": "raw",
               "raw": "{\n  \"userId\": \"{{interviewer_user_id}}\",\n  \"assignmentRole\": \"INTERVIEWER\"\n}"
             },
-            "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments"
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments",
+            "description": "Seeded Alice application is already assigned to interviewer@company.com. 409 if you assign the same user again."
           }
         },
         {
           "name": "List Assignments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || [];",
+                  "    if (items.length > 0 && items[0].id) {",
+                  "        pm.environment.set('assignment_id', items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -547,17 +717,51 @@
         },
         {
           "name": "My Assignments",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || [];",
+                  "    if (items.length > 0) {",
+                  "        if (items[0].id) pm.environment.set('assignment_id', items[0].id);",
+                  "        if (items[0].applicationId) pm.environment.set('application_id', items[0].applicationId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": "{{application_base_url}}/api/assignments",
-            "description": "Assignments for current JWT user."
+            "description": "INTERVIEWER only. Login (Interviewer) first."
           }
         },
         {
           "name": "Create Evaluation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.id) {",
+                  "        pm.environment.set('evaluation_id', json.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -568,11 +772,29 @@
               "mode": "raw",
               "raw": "{\n  \"score\": 4,\n  \"feedback\": \"Strong Java skills\"\n}"
             },
-            "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations"
+            "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations",
+            "description": "INTERVIEWER only. Must be assigned to this application. Login (Interviewer) first."
           }
         },
         {
           "name": "List Evaluations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const items = json.items || [];",
+                  "    if (items.length > 0 && items[0].id) {",
+                  "        pm.environment.set('evaluation_id', items[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -589,7 +811,7 @@
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": "{{application_base_url}}/api/applications/{{application_id}}/evaluations/{{evaluation_id}}",
-            "description": "Set evaluation_id from List Evaluations response."
+            "description": "Set evaluation_id via Create Evaluation or List Evaluations."
           }
         },
         {
@@ -600,7 +822,7 @@
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": "{{application_base_url}}/api/applications/{{application_id}}/assignments/{{assignment_id}}",
-            "description": "Set assignment_id from List Assignments response."
+            "description": "Set assignment_id via List Assignments."
           }
         },
         {
@@ -627,7 +849,7 @@
               "raw": "{\n  \"toStage\": \"HIRED\",\n  \"note\": \"Offer accepted\"\n}"
             },
             "url": "{{application_base_url}}/api/applications/{{application_id}}/stage-changes",
-            "description": "Sets candidate talentStatus to HIRED."
+            "description": "Also sets candidate talentStatus to HIRED in candidate-service."
           }
         }
       ]

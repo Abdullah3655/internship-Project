@@ -23,7 +23,7 @@ public class AssignmentController {
     }
 
     @GetMapping(version = "1.0")
-    @PreAuthorize("hasAnyRole('HR','ADMIN','INTERVIEWER')")
+    @PreAuthorize("hasRole('INTERVIEWER')")
     public AssignmentListResponse listMine(@AuthenticationPrincipal UserPrincipal actor) {
         return applicationTrackingService.listMyAssignments(actor);
     }

@@ -116,6 +116,13 @@ public class CandidateService {
         Candidate candidate = requireCandidate(id);
         candidate.setDeletedAt(Instant.now());
         candidate.setTalentStatus(TalentStatus.ARCHIVED);
+        // Free the unique email so a new candidate can reuse the address after soft-delete.
+        String suffix = "#deleted#" + candidate.getId();
+        String email = candidate.getEmail();
+        if (email.length() + suffix.length() > 255) {
+            email = email.substring(0, Math.max(0, 255 - suffix.length()));
+        }
+        candidate.setEmail(email + suffix);
         candidateRepository.save(candidate);
     }
 

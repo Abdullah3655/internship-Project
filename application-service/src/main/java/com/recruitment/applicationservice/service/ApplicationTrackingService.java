@@ -29,6 +29,7 @@ import com.recruitment.applicationservice.repository.ApplicationRepository;
 import com.recruitment.applicationservice.repository.ApplicationStageEventRepository;
 import com.recruitment.applicationservice.repository.EvaluationRepository;
 import com.recruitment.applicationservice.security.UserPrincipal;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,9 +94,15 @@ public class ApplicationTrackingService {
     }
 
     @Transactional(readOnly = true)
-    public ApplicationListResponse list(UUID jobId, UUID candidateId, PipelineStage stage) {
+    public ApplicationListResponse list(UUID jobId, UUID candidateId, PipelineStage stage, UserPrincipal actor) {
         List<Application> applications;
-        if (jobId != null && stage != null) {
+        if (isInterviewer(actor)) {
+            applications = applicationRepository.findAssignedToUser(actor.getId()).stream()
+                    .filter(app -> jobId == null || app.getJob().getId().equals(jobId))
+                    .filter(app -> candidateId == null || app.getCandidateId().equals(candidateId))
+                    .filter(app -> stage == null || app.getCurrentStage() == stage)
+                    .toList();
+        } else if (jobId != null && stage != null) {
             applications = applicationRepository.findByJobIdAndCurrentStageOrderByCreatedAtDesc(jobId, stage);
         } else if (candidateId != null && stage != null) {
             applications = applicationRepository.findByCandidateIdAndCurrentStageOrderByCreatedAtDesc(candidateId, stage);
@@ -112,8 +119,10 @@ public class ApplicationTrackingService {
     }
 
     @Transactional(readOnly = true)
-    public ApplicationResponse getById(UUID id) {
-        return ApplicationResponse.from(requireApplication(id));
+    public ApplicationResponse getById(UUID id, UserPrincipal actor) {
+        Application application = requireApplication(id);
+        requireAssignedIfInterviewer(application.getId(), actor);
+        return ApplicationResponse.from(application);
     }
 
     @Transactional
@@ -159,8 +168,9 @@ public class ApplicationTrackingService {
     }
 
     @Transactional(readOnly = true)
-    public StageEventListResponse listStageChanges(UUID id) {
+    public StageEventListResponse listStageChanges(UUID id, UserPrincipal actor) {
         requireApplication(id);
+        requireAssignedIfInterviewer(id, actor);
         return new StageEventListResponse(
                 stageEventRepository.findByApplicationIdOrderByCreatedAtAsc(id).stream()
                         .map(StageEventResponse::from)
@@ -171,7 +181,7 @@ public class ApplicationTrackingService {
     @Transactional
     public AssignmentResponse assign(UUID id, CreateAssignmentRequest request, String authorization) {
         Application application = requireApplication(id);
-        authServiceClient.requireUserExists(request.userId(), authorization);
+        authServiceClient.requireInterviewer(request.userId(), authorization);
         if (assignmentRepository.existsByApplicationIdAndUserIdAndAssignmentRole(
                 id, request.userId(), request.assignmentRole())) {
             throw new ConflictException("User already assigned with this role");
@@ -192,8 +202,9 @@ public class ApplicationTrackingService {
     }
 
     @Transactional(readOnly = true)
-    public AssignmentListResponse listAssignments(UUID id) {
+    public AssignmentListResponse listAssignments(UUID id, UserPrincipal actor) {
         requireApplication(id);
+        requireAssignedIfInterviewer(id, actor);
         return new AssignmentListResponse(
                 assignmentRepository.findByApplicationIdOrderByCreatedAtAsc(id).stream()
                         .map(AssignmentResponse::from)
@@ -213,6 +224,7 @@ public class ApplicationTrackingService {
     @Transactional
     public EvaluationResponse evaluate(UUID id, CreateEvaluationRequest request, UserPrincipal actor) {
         Application application = requireApplication(id);
+        requireAssignedIfInterviewer(application.getId(), actor);
         Evaluation evaluation = new Evaluation();
         evaluation.setApplication(application);
         evaluation.setInterviewerUserId(actor.getId());
@@ -232,8 +244,9 @@ public class ApplicationTrackingService {
     }
 
     @Transactional(readOnly = true)
-    public EvaluationListResponse listEvaluations(UUID id) {
+    public EvaluationListResponse listEvaluations(UUID id, UserPrincipal actor) {
         requireApplication(id);
+        requireAssignedIfInterviewer(id, actor);
         return new EvaluationListResponse(
                 evaluationRepository.findByApplicationIdOrderByCreatedAtDesc(id).stream()
                         .map(EvaluationResponse::from)
@@ -242,7 +255,20 @@ public class ApplicationTrackingService {
     }
 
     private Application requireApplication(UUID id) {
-        return applicationRepository.findById(id)
+        return applicationRepository.findByIdWithJob(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found: " + id));
+    }
+
+    private void requireAssignedIfInterviewer(UUID applicationId, UserPrincipal actor) {
+        if (!isInterviewer(actor)) {
+            return;
+        }
+        if (!assignmentRepository.existsByApplicationIdAndUserId(applicationId, actor.getId())) {
+            throw new AccessDeniedException("Not assigned to this application");
+        }
+    }
+
+    private static boolean isInterviewer(UserPrincipal actor) {
+        return actor != null && "INTERVIEWER".equalsIgnoreCase(actor.getRole());
     }
 }

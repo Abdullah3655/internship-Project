@@ -1,17 +1,31 @@
 package com.recruitment.candidateservice.exception;
 
 import com.recruitment.candidateservice.dto.ErrorResponse;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingPathVariableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -20,22 +34,34 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(CandidateNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(CandidateNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(ex.getMessage()));
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(DuplicateCandidateEmailException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateEmail(DuplicateCandidateEmailException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(ex.getMessage()));
+        return error(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return error(HttpStatus.CONFLICT, "A candidate with this email already exists");
     }
 
     @ExceptionHandler(InvalidFileException.class)
     public ResponseEntity<ErrorResponse> handleInvalidFile(InvalidFileException ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(ex.getMessage()));
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(StorageException.class)
+    public ResponseEntity<ErrorResponse> handleStorage(StorageException ex) {
+        log.error("Storage failure", ex);
+        return error(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleTooLarge(MaxUploadSizeExceededException ex) {
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(new ErrorResponse("File is too large"));
+        return error(HttpStatus.PAYLOAD_TOO_LARGE, "File is too large");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -44,28 +70,101 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("Invalid request");
-        return ResponseEntity.badRequest().body(new ErrorResponse(message));
+        return error(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(HandlerMethodValidationException ex) {
+        return error(HttpStatus.BAD_REQUEST, "Invalid request");
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        String message = ex.getConstraintViolations().stream()
+                .findFirst()
+                .map(v -> v.getPropertyPath() + " " + v.getMessage())
+                .orElse("Invalid request");
+        return error(HttpStatus.BAD_REQUEST, message);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex) {
+        return error(HttpStatus.BAD_REQUEST, "Invalid request body");
+    }
+
+    @ExceptionHandler({
+            MissingServletRequestParameterException.class,
+            MissingServletRequestPartException.class,
+            MissingPathVariableException.class,
+            ServletRequestBindingException.class
+    })
+    public ResponseEntity<ErrorResponse> handleMissingParam(Exception ex) {
+        if (ex instanceof MissingServletRequestParameterException missing) {
+            return error(HttpStatus.BAD_REQUEST, "Missing parameter: " + missing.getParameterName());
+        }
+        if (ex instanceof MissingServletRequestPartException missingPart) {
+            return error(HttpStatus.BAD_REQUEST, "Missing parameter: " + missingPart.getRequestPartName());
+        }
+        return error(HttpStatus.BAD_REQUEST, "Invalid or missing request parameter");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponse("Invalid " + ex.getName()));
+        return error(HttpStatus.BAD_REQUEST, "Invalid " + ex.getName());
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return error(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported content type");
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotAcceptableException.class)
+    public ResponseEntity<ErrorResponse> handleNotAcceptable(HttpMediaTypeNotAcceptableException ex) {
+        return error(HttpStatus.NOT_ACCEPTABLE, "Unsupported Accept header or API version");
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        return error(HttpStatus.METHOD_NOT_ALLOWED, "HTTP method not allowed");
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResource(NoResourceFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, "Resource not found");
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatusCode().value());
+        if (status == null) {
+            status = HttpStatus.BAD_REQUEST;
+        }
+        String message = ex.getReason() == null || ex.getReason().isBlank()
+                ? status.getReasonPhrase()
+                : ex.getReason();
+        return error(status, message);
+    }
+
+    @ExceptionHandler({AccessDeniedException.class, AuthorizationDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleAccessDenied(Exception ex) {
+        String message = ex.getMessage() == null || ex.getMessage().isBlank()
+                ? "Access denied"
+                : ex.getMessage();
+        return error(HttpStatus.FORBIDDEN, message);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Authentication required"));
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("Access denied"));
+        return error(HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleServerError(Exception ex) {
         log.error("Unhandled error", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("Something went wrong"));
+        return error(HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
+    }
+
+    private static ResponseEntity<ErrorResponse> error(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(new ErrorResponse(message));
     }
 }

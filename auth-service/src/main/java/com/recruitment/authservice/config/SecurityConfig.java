@@ -48,7 +48,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register/hr", "/api/auth/register/interviewer",
                                 "/api/auth/register/ldap/hr", "/api/auth/register/ldap/interviewer")
                         .hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/auth/me", "/api/auth/users/{id}").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/users/{id}").hasAnyRole("HR", "ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) ->
