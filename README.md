@@ -139,7 +139,7 @@ Files:
 
 - `postman/Recruitment-Platform.postman_collection.json` — full API flow
 - `postman/Local.postman_environment.json` — local URLs + variables
-- `postman/samples/` — sample CV text files for upload requests
+- `postman/samples/` — sample CV PDFs for upload requests (`Abdullah_Emad_Resume.pdf`, `Alice_Smith_CV.pdf`, `Bob_Jones_CV.pdf`)
 
 Setup:
 

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Recruitment Platform",
-    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples: postman/samples/Alice_CV.txt and Bob_CV.txt (attach as File in Upload requests).",
+    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples (PDF): postman/samples/Abdullah_Emad_Resume.pdf, Alice_Smith_CV.pdf, Bob_Jones_CV.pdf.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -392,7 +392,7 @@
                   "key": "file",
                   "type": "file",
                   "src": [],
-                  "description": "Attach postman/samples/Alice_CV.txt (or any .txt/.pdf/.docx supported by the service)"
+                  "description": "Attach postman/samples/Abdullah_Emad_Resume.pdf (or Alice_Smith_CV.pdf / Bob_Jones_CV.pdf)"
                 }
               ]
             },
@@ -414,13 +414,13 @@
                   "key": "files",
                   "type": "file",
                   "src": [],
-                  "description": "Attach postman/samples/Alice_CV.txt"
+                  "description": "Attach postman/samples/Alice_Smith_CV.pdf"
                 },
                 {
                   "key": "files",
                   "type": "file",
                   "src": [],
-                  "description": "Optional second file: postman/samples/Bob_CV.txt"
+                  "description": "Optional second file: postman/samples/Bob_Jones_CV.pdf"
                 }
               ]
             },

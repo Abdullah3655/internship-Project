@@ -1,4 +1,0 @@
-Alice Smith
-alice.sample@example.com
-+15551234567
-Skills: Java, Spring, Docker
