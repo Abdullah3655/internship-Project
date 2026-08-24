@@ -1,29 +1,23 @@
 package com.recruitment.applicationservice.client;
 
-import com.recruitment.applicationservice.config.ServiceClientProperties;
 import com.recruitment.applicationservice.exception.BadRequestException;
 import com.recruitment.applicationservice.exception.ConflictException;
 import com.recruitment.applicationservice.exception.ServiceUnavailableException;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Component
 public class CandidateServiceClient {
 
-    private static final MediaType JSON_V1 = MediaType.parseMediaType("application/json;version=1.0");
+    private final CandidateApi candidateApi;
 
-    private final RestClient restClient;
-    private final ServiceClientProperties serviceClientProperties;
-
-    public CandidateServiceClient(RestClient restClient, ServiceClientProperties serviceClientProperties) {
-        this.restClient = restClient;
-        this.serviceClientProperties = serviceClientProperties;
+    public CandidateServiceClient(CandidateApi candidateApi) {
+        this.candidateApi = candidateApi;
     }
 
     public void requireCandidateExists(UUID candidateId, String authorization) {
@@ -31,12 +25,7 @@ public class CandidateServiceClient {
             throw new BadRequestException("Authorization header is required");
         }
         try {
-            restClient.get()
-                    .uri(serviceClientProperties.getCandidateServiceUrl() + "/api/candidates/{id}", candidateId)
-                    .header("Authorization", authorization)
-                    .accept(JSON_V1)
-                    .retrieve()
-                    .toBodilessEntity();
+            candidateApi.getCandidate(candidateId, authorization);
         } catch (HttpClientErrorException.NotFound ex) {
             throw new BadRequestException("Candidate not found: " + candidateId);
         } catch (HttpClientErrorException.BadRequest ex) {
@@ -57,14 +46,7 @@ public class CandidateServiceClient {
             throw new BadRequestException("Authorization header is required");
         }
         try {
-            restClient.patch()
-                    .uri(serviceClientProperties.getCandidateServiceUrl() + "/api/candidates/{id}", candidateId)
-                    .header("Authorization", authorization)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .accept(JSON_V1)
-                    .body("{\"talentStatus\":\"HIRED\"}")
-                    .retrieve()
-                    .toBodilessEntity();
+            candidateApi.updateCandidate(candidateId, authorization, Map.of("talentStatus", "HIRED"));
         } catch (HttpClientErrorException.NotFound ex) {
             throw new BadRequestException("Candidate not found: " + candidateId);
         } catch (HttpClientErrorException.BadRequest ex) {

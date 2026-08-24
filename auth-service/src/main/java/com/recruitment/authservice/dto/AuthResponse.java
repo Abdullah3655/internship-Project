@@ -2,11 +2,9 @@ package com.recruitment.authservice.dto;
 
 public record AuthResponse(
         String accessToken,
-        String refreshToken,
-        String tokenType,
-        long expiresIn
+        String refreshToken
 ) {
-    public static AuthResponse of(String accessToken, String refreshToken, long expiresInSeconds) {
-        return new AuthResponse(accessToken, refreshToken, "Bearer", expiresInSeconds);
+    public static AuthResponse of(String accessToken, String refreshToken) {
+        return new AuthResponse(accessToken, refreshToken);
     }
 }

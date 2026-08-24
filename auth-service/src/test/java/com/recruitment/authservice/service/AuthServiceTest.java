@@ -131,7 +131,6 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("jane@company.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
         when(jwtService.createToken(user)).thenReturn("jwt-token");
-        when(jwtService.getExpirationMs()).thenReturn(900_000L);
         when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -139,8 +138,6 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("jwt-token");
         assertThat(response.refreshToken()).isNotBlank();
-        assertThat(response.tokenType()).isEqualTo("Bearer");
-        assertThat(response.expiresIn()).isEqualTo(900);
         verify(ldapAuthenticator, never()).authenticate(any(), any());
     }
 
@@ -159,7 +156,6 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("ldap.hr@company.com")).thenReturn(Optional.of(user));
         when(ldapAuthenticator.authenticate("cn=ldap.hr,ou=users,dc=company,dc=com", "password123")).thenReturn(true);
         when(jwtService.createToken(user)).thenReturn("ldap-jwt");
-        when(jwtService.getExpirationMs()).thenReturn(900_000L);
         when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -167,7 +163,6 @@ class AuthServiceTest {
 
         assertThat(response.accessToken()).isEqualTo("ldap-jwt");
         assertThat(response.refreshToken()).isNotBlank();
-        assertThat(response.tokenType()).isEqualTo("Bearer");
         verify(passwordEncoder, never()).matches(any(), any());
     }
 
@@ -191,7 +186,6 @@ class AuthServiceTest {
 
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
         when(jwtService.createToken(user)).thenReturn("new-access");
-        when(jwtService.getExpirationMs()).thenReturn(900_000L);
         when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
         when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 

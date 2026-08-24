@@ -1,14 +1,11 @@
 package com.recruitment.applicationservice.client;
 
-import com.recruitment.applicationservice.config.ServiceClientProperties;
 import com.recruitment.applicationservice.exception.BadRequestException;
 import com.recruitment.applicationservice.exception.ConflictException;
 import com.recruitment.applicationservice.exception.ServiceUnavailableException;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 import java.util.UUID;
@@ -16,14 +13,10 @@ import java.util.UUID;
 @Component
 public class AuthServiceClient {
 
-    private static final MediaType JSON_V1 = MediaType.parseMediaType("application/json;version=1.0");
+    private final AuthApi authApi;
 
-    private final RestClient restClient;
-    private final ServiceClientProperties serviceClientProperties;
-
-    public AuthServiceClient(RestClient restClient, ServiceClientProperties serviceClientProperties) {
-        this.restClient = restClient;
-        this.serviceClientProperties = serviceClientProperties;
+    public AuthServiceClient(AuthApi authApi) {
+        this.authApi = authApi;
     }
 
     public AuthUserView requireUserExists(UUID userId, String authorization) {
@@ -31,12 +24,7 @@ public class AuthServiceClient {
             throw new BadRequestException("Authorization header is required");
         }
         try {
-            AuthUserView user = restClient.get()
-                    .uri(serviceClientProperties.getAuthServiceUrl() + "/api/auth/users/{id}", userId)
-                    .header("Authorization", authorization)
-                    .accept(JSON_V1)
-                    .retrieve()
-                    .body(AuthUserView.class);
+            AuthUserView user = authApi.getUser(userId, authorization);
             if (user == null || user.id() == null) {
                 throw new BadRequestException("User not found: " + userId);
             }

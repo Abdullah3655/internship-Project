@@ -101,6 +101,28 @@ Windows: use `mvnw.cmd` instead of `./mvnw`.
 
 Spring Boot may also start the related compose file when an app launches (`spring.docker.compose.lifecycle-management=start-and-stop`). Starting compose manually first is still the most reliable approach.
 
+## Database schema (Flyway)
+
+Each service uses **Flyway** to create its schema on startup from SQL files under `src/main/resources/db/migration/`:
+
+| Service | Migration |
+|---------|-----------|
+| auth-service | `V1__create_auth_schema.sql` |
+| candidate-service | `V1__create_candidate_schema.sql` |
+| application-service | `V1__create_application_schema.sql` |
+
+Hibernate is set to `ddl-auto=validate` (it no longer creates tables). Demo seed data still comes from the Java seeders after the schema exists.
+
+If you already had old Docker volumes created before Flyway, recreate them once:
+
+```bash
+cd auth-service && docker compose down -v
+cd ../candidate-service && docker compose down -v
+cd ../application-service && docker compose down -v
+```
+
+Then start compose and the apps again.
+
 ## Initial data (on first startup)
 
 If the tables are empty, each service inserts starter rows so you can demo without creating everything by hand.
@@ -133,7 +155,9 @@ LDAP demo user: `ldap.hr@company.com` / `password123` (also exists in OpenLDAP a
 
 All three apps share the same JWT secret (`jwt.secret` in each `application.properties`). Tokens from auth-service work on the other services.
 
-Login returns a short-lived **access token** (15 minutes) and a **refresh token** (7 days). Use `POST /api/auth/refresh` with `{ "refreshToken": "..." }` to get a new pair. The old refresh token is replaced.
+Login returns a short-lived **access token** (15 minutes) and a **refresh token** (7 days). Use `POST /api/auth/refresh` with `{ "refreshToken": "..." }` to get a new pair. The old refresh token is replaced. Response fields are `accessToken` and `refreshToken` only.
+
+`application-service` calls auth-service and candidate-service through Spring **HTTP Exchange** interfaces (`AuthApi`, `CandidateApi`).
 
 ## Postman
 

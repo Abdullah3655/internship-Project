@@ -180,11 +180,7 @@ public class AuthService {
         stored.setExpiresAt(Instant.now().plusMillis(jwtService.getRefreshExpirationMs()));
         refreshTokenRepository.save(stored);
 
-        return AuthResponse.of(
-                jwtService.createToken(user),
-                refreshToken,
-                jwtService.getExpirationMs() / 1000
-        );
+        return AuthResponse.of(jwtService.createToken(user), refreshToken);
     }
 
     private static String newToken() {

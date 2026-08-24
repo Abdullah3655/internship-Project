@@ -47,10 +47,6 @@ public class JwtService {
         return parseClaims(token).get("role", String.class);
     }
 
-    public long getExpirationMs() {
-        return jwtProperties.getExpirationMs();
-    }
-
     public long getRefreshExpirationMs() {
         return jwtProperties.getRefreshExpirationMs();
     }
