@@ -4,6 +4,7 @@ import com.recruitment.authservice.config.OpenApiConfig;
 import com.recruitment.authservice.domain.UserRole;
 import com.recruitment.authservice.dto.AuthResponse;
 import com.recruitment.authservice.dto.LoginRequest;
+import com.recruitment.authservice.dto.RefreshRequest;
 import com.recruitment.authservice.dto.RegisterRequest;
 import com.recruitment.authservice.dto.UserResponse;
 import com.recruitment.authservice.security.UserPrincipal;
@@ -84,6 +85,12 @@ public class AuthController {
     )
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping(path = "/refresh", version = "1.0")
+    @SecurityRequirements
+    public AuthResponse refresh(@Valid @RequestBody RefreshRequest request) {
+        return authService.refresh(request.refreshToken());
     }
 
     @GetMapping(path = "/me", version = "1.0")

@@ -1,5 +1,6 @@
 package com.recruitment.authservice.service;
 
+import com.recruitment.authservice.domain.RefreshToken;
 import com.recruitment.authservice.domain.AccountStatus;
 import com.recruitment.authservice.domain.IdentityProvider;
 import com.recruitment.authservice.domain.User;
@@ -10,6 +11,8 @@ import com.recruitment.authservice.dto.RegisterRequest;
 import com.recruitment.authservice.dto.UserResponse;
 import com.recruitment.authservice.exception.EmailAlreadyExistsException;
 import com.recruitment.authservice.exception.InvalidCredentialsException;
+import com.recruitment.authservice.exception.InvalidRefreshTokenException;
+import com.recruitment.authservice.repository.RefreshTokenRepository;
 import com.recruitment.authservice.repository.UserRepository;
 import com.recruitment.authservice.security.JwtService;
 import com.recruitment.authservice.security.LdapAuthenticator;
@@ -23,6 +26,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +43,8 @@ class AuthServiceTest {
 
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
@@ -125,11 +131,16 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("jane@company.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashed")).thenReturn(true);
         when(jwtService.createToken(user)).thenReturn("jwt-token");
+        when(jwtService.getExpirationMs()).thenReturn(900_000L);
+        when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
+        when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthResponse response = authService.login(new LoginRequest("Jane@company.com", "password123"));
 
         assertThat(response.accessToken()).isEqualTo("jwt-token");
+        assertThat(response.refreshToken()).isNotBlank();
         assertThat(response.tokenType()).isEqualTo("Bearer");
+        assertThat(response.expiresIn()).isEqualTo(900);
         verify(ldapAuthenticator, never()).authenticate(any(), any());
     }
 
@@ -148,10 +159,14 @@ class AuthServiceTest {
         when(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("ldap.hr@company.com")).thenReturn(Optional.of(user));
         when(ldapAuthenticator.authenticate("cn=ldap.hr,ou=users,dc=company,dc=com", "password123")).thenReturn(true);
         when(jwtService.createToken(user)).thenReturn("ldap-jwt");
+        when(jwtService.getExpirationMs()).thenReturn(900_000L);
+        when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
+        when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AuthResponse response = authService.login(new LoginRequest("ldap.hr@company.com", "password123"));
 
         assertThat(response.accessToken()).isEqualTo("ldap-jwt");
+        assertThat(response.refreshToken()).isNotBlank();
         assertThat(response.tokenType()).isEqualTo("Bearer");
         verify(passwordEncoder, never()).matches(any(), any());
     }
@@ -164,6 +179,35 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.login(new LoginRequest("ldap.hr@company.com", "wrong")))
                 .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void refreshReturnsNewTokensAndRemovesOldRefreshToken() {
+        User user = hrUser();
+        RefreshToken stored = new RefreshToken();
+        stored.setUser(user);
+        stored.setTokenHash("existing-hash");
+        stored.setExpiresAt(Instant.now().plusSeconds(3600));
+
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
+        when(jwtService.createToken(user)).thenReturn("new-access");
+        when(jwtService.getExpirationMs()).thenReturn(900_000L);
+        when(jwtService.getRefreshExpirationMs()).thenReturn(604_800_000L);
+        when(refreshTokenRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AuthResponse response = authService.refresh("old-refresh-token");
+
+        assertThat(response.accessToken()).isEqualTo("new-access");
+        assertThat(response.refreshToken()).isNotBlank();
+        verify(refreshTokenRepository).delete(stored);
+    }
+
+    @Test
+    void refreshRejectsUnknownToken() {
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh("missing"))
+                .isInstanceOf(InvalidRefreshTokenException.class);
     }
 
     private static User hrUser() {

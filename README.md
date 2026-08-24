@@ -133,6 +133,8 @@ LDAP demo user: `ldap.hr@company.com` / `password123` (also exists in OpenLDAP a
 
 All three apps share the same JWT secret (`jwt.secret` in each `application.properties`). Tokens from auth-service work on the other services.
 
+Login returns a short-lived **access token** (15 minutes) and a **refresh token** (7 days). Use `POST /api/auth/refresh` with `{ "refreshToken": "..." }` to get a new pair. The old refresh token is replaced.
+
 ## Postman
 
 Files:
@@ -146,8 +148,9 @@ Setup:
 1. Import the collection and the **Local** environment into Postman.
 2. Select environment **Local**.
 3. Run **Auth → Login** with `hr@company.com` / `password123`.
-4. The login request saves `access_token` automatically; other requests use `Authorization: Bearer {{access_token}}`.
-5. Create/list flows also fill `candidate_id`, `job_id`, `application_id`, etc. when those requests succeed.
+4. The login request saves `access_token` and `refresh_token` automatically; other requests use `Authorization: Bearer {{access_token}}`.
+5. If the access token expires, run **Auth → Refresh Token**.
+6. Create/list flows also fill `candidate_id`, `job_id`, `application_id`, etc. when those requests succeed.
 
 Suggested happy path:
 

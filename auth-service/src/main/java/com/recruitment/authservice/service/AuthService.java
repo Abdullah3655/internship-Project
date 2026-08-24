@@ -2,6 +2,7 @@ package com.recruitment.authservice.service;
 
 import com.recruitment.authservice.domain.AccountStatus;
 import com.recruitment.authservice.domain.IdentityProvider;
+import com.recruitment.authservice.domain.RefreshToken;
 import com.recruitment.authservice.domain.User;
 import com.recruitment.authservice.domain.UserRole;
 import com.recruitment.authservice.dto.AuthResponse;
@@ -10,7 +11,9 @@ import com.recruitment.authservice.dto.RegisterRequest;
 import com.recruitment.authservice.dto.UserResponse;
 import com.recruitment.authservice.exception.EmailAlreadyExistsException;
 import com.recruitment.authservice.exception.InvalidCredentialsException;
+import com.recruitment.authservice.exception.InvalidRefreshTokenException;
 import com.recruitment.authservice.exception.UserNotFoundException;
+import com.recruitment.authservice.repository.RefreshTokenRepository;
 import com.recruitment.authservice.repository.UserRepository;
 import com.recruitment.authservice.security.JwtService;
 import com.recruitment.authservice.security.LdapAuthenticator;
@@ -19,12 +22,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.time.Instant;
+import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final LdapAuthenticator ldapAuthenticator;
@@ -32,12 +42,14 @@ public class AuthService {
 
     public AuthService(
             UserRepository userRepository,
+            RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             LdapAuthenticator ldapAuthenticator,
             LdapUserProvisioner ldapUserProvisioner
     ) {
         this.userRepository = userRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.ldapAuthenticator = ldapAuthenticator;
@@ -96,7 +108,7 @@ public class AuthService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase();
         User user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
@@ -114,7 +126,27 @@ public class AuthService {
             throw new InvalidCredentialsException();
         }
 
-        return toAuthResponse(user);
+        return issueTokens(user);
+    }
+
+    @Transactional
+    public AuthResponse refresh(String refreshToken) {
+        RefreshToken stored = refreshTokenRepository.findByTokenHash(hashToken(refreshToken))
+                .orElseThrow(InvalidRefreshTokenException::new);
+
+        if (stored.getExpiresAt().isBefore(Instant.now())) {
+            refreshTokenRepository.delete(stored);
+            throw new InvalidRefreshTokenException();
+        }
+
+        User user = stored.getUser();
+        if (user.getDeletedAt() != null || user.getAccountStatus() != AccountStatus.ACTIVE) {
+            refreshTokenRepository.delete(stored);
+            throw new InvalidRefreshTokenException();
+        }
+
+        refreshTokenRepository.delete(stored);
+        return issueTokens(user);
     }
 
     @Transactional(readOnly = true)
@@ -140,8 +172,34 @@ public class AuthService {
         }
     }
 
-    private AuthResponse toAuthResponse(User user) {
-        return AuthResponse.of(jwtService.createToken(user));
+    private AuthResponse issueTokens(User user) {
+        String refreshToken = newToken();
+        RefreshToken stored = new RefreshToken();
+        stored.setUser(user);
+        stored.setTokenHash(hashToken(refreshToken));
+        stored.setExpiresAt(Instant.now().plusMillis(jwtService.getRefreshExpirationMs()));
+        refreshTokenRepository.save(stored);
+
+        return AuthResponse.of(
+                jwtService.createToken(user),
+                refreshToken,
+                jwtService.getExpirationMs() / 1000
+        );
+    }
+
+    private static String newToken() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return HexFormat.of().formatHex(bytes);
+    }
+
+    private static String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(token.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 not available", ex);
+        }
     }
 }
 

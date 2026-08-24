@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Recruitment Platform",
-    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples (PDF): samples/cv/Abdullah_Emad_Resume.pdf, Alice_Smith_CV.pdf, Bob_Jones_CV.pdf.",
+    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token and refresh_token. Use Auth → Refresh Token if the access token expires.\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples (PDF): samples/cv/Abdullah_Emad_Resume.pdf, Alice_Smith_CV.pdf, Bob_Jones_CV.pdf.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -33,8 +33,14 @@
                   "    } else {",
                   "        pm.environment.unset('access_token');",
                   "    }",
+                  "    if (json.refreshToken) {",
+                  "        pm.environment.set('refresh_token', json.refreshToken);",
+                  "    } else {",
+                  "        pm.environment.unset('refresh_token');",
+                  "    }",
                   "} else {",
                   "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -71,8 +77,14 @@
                   "    } else {",
                   "        pm.environment.unset('access_token');",
                   "    }",
+                  "    if (json.refreshToken) {",
+                  "        pm.environment.set('refresh_token', json.refreshToken);",
+                  "    } else {",
+                  "        pm.environment.unset('refresh_token');",
+                  "    }",
                   "} else {",
                   "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -109,8 +121,14 @@
                   "    } else {",
                   "        pm.environment.unset('access_token');",
                   "    }",
+                  "    if (json.refreshToken) {",
+                  "        pm.environment.set('refresh_token', json.refreshToken);",
+                  "    } else {",
+                  "        pm.environment.unset('refresh_token');",
+                  "    }",
                   "} else {",
                   "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -147,8 +165,14 @@
                   "    } else {",
                   "        pm.environment.unset('access_token');",
                   "    }",
+                  "    if (json.refreshToken) {",
+                  "        pm.environment.set('refresh_token', json.refreshToken);",
+                  "    } else {",
+                  "        pm.environment.unset('refresh_token');",
+                  "    }",
                   "} else {",
                   "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -168,6 +192,43 @@
             },
             "url": "{{auth_base_url}}/api/auth/login",
             "description": "Requires OpenLDAP container on port 1389."
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    const token = json.accessToken || json.token;",
+                  "    if (token) {",
+                  "        pm.environment.set('access_token', token);",
+                  "    }",
+                  "    if (json.refreshToken) {",
+                  "        pm.environment.set('refresh_token', json.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/refresh",
+            "description": "Uses the refresh token from login. Returns a new access token (15 minutes) and a new refresh token."
           }
         },
         {
