@@ -8,9 +8,7 @@ import com.recruitment.applicationservice.dto.JobListResponse;
 import com.recruitment.applicationservice.dto.JobResponse;
 import com.recruitment.applicationservice.dto.UpdateJobRequest;
 import com.recruitment.applicationservice.exception.BadRequestException;
-import com.recruitment.applicationservice.exception.ConflictException;
 import com.recruitment.applicationservice.exception.ResourceNotFoundException;
-import com.recruitment.applicationservice.repository.ApplicationRepository;
 import com.recruitment.applicationservice.repository.JobRepository;
 import com.recruitment.applicationservice.repository.TagRepository;
 import com.recruitment.applicationservice.security.UserPrincipal;
@@ -29,16 +27,10 @@ public class JobService {
 
     private final JobRepository jobRepository;
     private final TagRepository tagRepository;
-    private final ApplicationRepository applicationRepository;
 
-    public JobService(
-            JobRepository jobRepository,
-            TagRepository tagRepository,
-            ApplicationRepository applicationRepository
-    ) {
+    public JobService(JobRepository jobRepository, TagRepository tagRepository) {
         this.jobRepository = jobRepository;
         this.tagRepository = tagRepository;
-        this.applicationRepository = applicationRepository;
     }
 
     @Transactional
@@ -123,9 +115,6 @@ public class JobService {
     @Transactional
     public void delete(UUID id) {
         Job job = requireJob(id);
-        if (applicationRepository.existsByJobId(id)) {
-            throw new ConflictException("Cannot delete a job that has applications");
-        }
         jobRepository.delete(job);
     }
 

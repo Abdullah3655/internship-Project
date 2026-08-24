@@ -1,5 +1,6 @@
 package com.recruitment.candidateservice.domain;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -74,7 +75,7 @@ public class Candidate {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    @OneToMany(mappedBy = "candidate")
+    @OneToMany(mappedBy = "candidate", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CandidateDocument> documents = new ArrayList<>();
 
     @PrePersist

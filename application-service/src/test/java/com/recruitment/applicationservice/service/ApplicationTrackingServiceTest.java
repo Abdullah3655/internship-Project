@@ -147,25 +147,12 @@ class ApplicationTrackingServiceTest {
     }
 
     @Test
-    void deleteRemovesEvaluationsAssignmentsStageEventsAndApplication() {
+    void deleteRemovesApplicationAndCascadesChildren() {
         Application application = application(PipelineStage.INTERVIEW);
-        Evaluation evaluation = new Evaluation();
-        ApplicationAssignment assignment = new ApplicationAssignment();
-        ApplicationStageEvent stageEvent = new ApplicationStageEvent();
-
         when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
-        when(evaluationRepository.findByApplicationIdOrderByCreatedAtDesc(APPLICATION_ID))
-                .thenReturn(List.of(evaluation));
-        when(assignmentRepository.findByApplicationIdOrderByCreatedAtAsc(APPLICATION_ID))
-                .thenReturn(List.of(assignment));
-        when(stageEventRepository.findByApplicationIdOrderByCreatedAtAsc(APPLICATION_ID))
-                .thenReturn(List.of(stageEvent));
 
         applicationTrackingService.delete(APPLICATION_ID);
 
-        verify(evaluationRepository).deleteAll(eq(List.of(evaluation)));
-        verify(assignmentRepository).deleteAll(eq(List.of(assignment)));
-        verify(stageEventRepository).deleteAll(eq(List.of(stageEvent)));
         verify(applicationRepository).delete(application);
     }
 

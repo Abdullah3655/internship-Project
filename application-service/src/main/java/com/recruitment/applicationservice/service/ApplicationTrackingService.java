@@ -160,10 +160,6 @@ public class ApplicationTrackingService {
     @Transactional
     public void delete(UUID id) {
         Application application = requireApplication(id);
-        UUID applicationId = application.getId();
-        evaluationRepository.deleteAll(evaluationRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId));
-        assignmentRepository.deleteAll(assignmentRepository.findByApplicationIdOrderByCreatedAtAsc(applicationId));
-        stageEventRepository.deleteAll(stageEventRepository.findByApplicationIdOrderByCreatedAtAsc(applicationId));
         applicationRepository.delete(application);
     }
 
