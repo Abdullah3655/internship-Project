@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="420" viewBox="0 0 980 420">
+  <defs>
+    <style>
+      .title { font: 700 22px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 12px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .box-title { font: 700 13px Segoe UI, Arial, sans-serif; fill: #111827; }
+      .box-text { font: 11px Consolas, monospace; fill: #374151; }
+      .table { fill: #ffffff; stroke: #334155; stroke-width: 1.5; }
+      .header-text { font: 700 12px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .pk { fill: #fef3c7; }
+      .note { font: 11px Segoe UI, Arial, sans-serif; fill: #4b5563; }
+      .edge { stroke: #334155; stroke-width: 1.6; fill: none; }
+      .edge-logical { stroke: #7c3aed; stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+      .label { font: 10px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="28" y="36" class="title">Recruitment Platform — Database Overview</text>
+
+<text x="28" y="58" class="subtitle">Three isolated MySQL databases (database-per-service). Cross-service links are UUID values, not foreign keys.</text>
+<rect x="40" y="100" width="280" height="58" rx="10" fill="#fff" stroke="#1d4ed8" stroke-width="2.5"/>
+<rect x="40" y="100" width="280" height="32" rx="10" fill="#1d4ed8"/>
+<rect x="40" y="118" width="280" height="14" fill="#1d4ed8"/>
+<text x="54" y="122" class="header-text">auth_db :3307</text>
+<text x="58" y="152" class="box-text">• users</text>
+<rect x="350" y="100" width="280" height="112" rx="10" fill="#fff" stroke="#047857" stroke-width="2.5"/>
+<rect x="350" y="100" width="280" height="32" rx="10" fill="#047857"/>
+<rect x="350" y="118" width="280" height="14" fill="#047857"/>
+<text x="364" y="122" class="header-text">candidate_db :3308</text>
+<text x="368" y="152" class="box-text">• candidates</text>
+<text x="368" y="170" class="box-text">• tags</text>
+<text x="368" y="188" class="box-text">• candidate_tags</text>
+<text x="368" y="206" class="box-text">• candidate_documents</text>
+<rect x="660" y="100" width="280" height="166" rx="10" fill="#fff" stroke="#b45309" stroke-width="2.5"/>
+<rect x="660" y="100" width="280" height="32" rx="10" fill="#b45309"/>
+<rect x="660" y="118" width="280" height="14" fill="#b45309"/>
+<text x="674" y="122" class="header-text">application_db :3309</text>
+<text x="678" y="152" class="box-text">• jobs</text>
+<text x="678" y="170" class="box-text">• tags</text>
+<text x="678" y="188" class="box-text">• job_tags</text>
+<text x="678" y="206" class="box-text">• applications</text>
+<text x="678" y="224" class="box-text">• application_assignments</text>
+<text x="678" y="242" class="box-text">• application_stage_events</text>
+<text x="678" y="260" class="box-text">• evaluations</text>
+<path d="M180 290 C180 340, 490 340, 490 290" class="edge-logical" marker-end="url(#arrow-purple)"/>
+<path d="M800 290 C800 360, 490 360, 490 290" class="edge-logical" marker-end="url(#arrow-purple)"/>
+<text x="300" y="370" class="label">*_user_id → users.id (logical UUID)</text>
+<text x="520" y="395" class="label">applications.candidate_id → candidates.id (logical UUID)</text>
+</svg>

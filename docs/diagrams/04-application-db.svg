@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="700" viewBox="0 0 1080 700">
+  <defs>
+    <style>
+      .title { font: 700 22px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 12px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .box-title { font: 700 12px Segoe UI, Arial, sans-serif; fill: #111827; }
+      .box-text { font: 11px Consolas, monospace; fill: #374151; }
+      .header-text { font: 700 12px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .table { fill: #ffffff; stroke: #b45309; stroke-width: 1.8; }
+      .join { fill: #fff7ed; stroke: #b45309; stroke-width: 1.5; }
+      .pk { fill: #fef3c7; }
+      .edge { stroke: #334155; stroke-width: 1.8; fill: none; }
+      .label { font: 11px Segoe UI, Arial, sans-serif; fill: #4b5563; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="28" y="36" class="title">application_db — ER Diagram</text>
+  <text x="28" y="58" class="subtitle">Hiring pipeline. Solid arrows = FKs in this DB. Fields marked → auth / → candidate_db are logical UUIDs only.</text>
+
+  <!-- jobs -->
+  <rect x="40" y="90" width="300" height="172" rx="6" class="table"/>
+  <rect x="40" y="90" width="300" height="28" rx="6" fill="#b45309"/>
+  <rect x="40" y="106" width="300" height="12" fill="#b45309"/>
+  <text x="52" y="110" class="header-text">jobs</text>
+  <rect x="41" y="122" width="298" height="18" class="pk"/>
+  <text x="52" y="135" class="box-text">id CHAR(36) PK</text>
+  <text x="52" y="153" class="box-text">title / department / location</text>
+  <text x="52" y="171" class="box-text">description TEXT</text>
+  <text x="52" y="189" class="box-text">employment_type</text>
+  <text x="52" y="207" class="box-text">job_status DRAFT | PUBLISHED | CLOSED</text>
+  <text x="52" y="225" class="box-text">created_by_user_id → auth.users</text>
+  <text x="52" y="243" class="box-text">published_at / created_at / updated_at</text>
+
+  <!-- tags -->
+  <rect x="760" y="90" width="240" height="82" rx="6" class="table"/>
+  <rect x="760" y="90" width="240" height="28" rx="6" fill="#b45309"/>
+  <rect x="760" y="106" width="240" height="12" fill="#b45309"/>
+  <text x="772" y="110" class="header-text">tags (local)</text>
+  <rect x="761" y="122" width="238" height="18" class="pk"/>
+  <text x="772" y="135" class="box-text">id CHAR(36) PK</text>
+  <text x="772" y="153" class="box-text">name VARCHAR(64) UK</text>
+
+  <!-- job_tags -->
+  <rect x="520" y="105" width="130" height="60" rx="6" class="join"/>
+  <text x="545" y="130" class="box-title">job_tags</text>
+  <text x="540" y="148" class="box-text">job_id</text>
+  <text x="540" y="164" class="box-text">tag_id</text>
+
+  <path d="M340 130 H520" class="edge" marker-end="url(#arrow)"/>
+  <path d="M650 130 H760" class="edge" marker-end="url(#arrow)"/>
+  <text x="560" y="95" class="label">M : N</text>
+
+  <!-- applications -->
+  <rect x="40" y="320" width="320" height="154" rx="6" class="table"/>
+  <rect x="40" y="320" width="320" height="28" rx="6" fill="#b45309"/>
+  <rect x="40" y="336" width="320" height="12" fill="#b45309"/>
+  <text x="52" y="340" class="header-text">applications</text>
+  <rect x="41" y="352" width="318" height="18" class="pk"/>
+  <text x="52" y="365" class="box-text">id CHAR(36) PK</text>
+  <text x="52" y="383" class="box-text">job_id FK → jobs.id</text>
+  <text x="52" y="401" class="box-text">candidate_id → candidate_db (UUID)</text>
+  <text x="52" y="419" class="box-text">current_stage PipelineStage</text>
+  <text x="52" y="437" class="box-text">created_at / updated_at</text>
+  <text x="52" y="455" class="box-text">UK (job_id, candidate_id)</text>
+
+  <!-- jobs -> applications -->
+  <path d="M120 262 V320" class="edge" marker-end="url(#arrow)"/>
+  <text x="128" y="295" class="label">1 : N</text>
+
+  <!-- assignments -->
+  <rect x="440" y="300" width="280" height="154" rx="6" class="table"/>
+  <rect x="440" y="300" width="280" height="28" rx="6" fill="#b45309"/>
+  <rect x="440" y="316" width="280" height="12" fill="#b45309"/>
+  <text x="452" y="320" class="header-text">application_assignments</text>
+  <rect x="441" y="332" width="278" height="18" class="pk"/>
+  <text x="452" y="345" class="box-text">id CHAR(36) PK</text>
+  <text x="452" y="363" class="box-text">application_id FK</text>
+  <text x="452" y="381" class="box-text">user_id → auth.users</text>
+  <text x="452" y="399" class="box-text">assignment_role</text>
+  <text x="452" y="417" class="box-text">created_at</text>
+  <text x="452" y="435" class="box-text">UK (app, user, role)</text>
+
+  <!-- evaluations -->
+  <rect x="760" y="300" width="260" height="154" rx="6" class="table"/>
+  <rect x="760" y="300" width="260" height="28" rx="6" fill="#b45309"/>
+  <rect x="760" y="316" width="260" height="12" fill="#b45309"/>
+  <text x="772" y="320" class="header-text">evaluations</text>
+  <rect x="761" y="332" width="258" height="18" class="pk"/>
+  <text x="772" y="345" class="box-text">id CHAR(36) PK</text>
+  <text x="772" y="363" class="box-text">application_id FK</text>
+  <text x="772" y="381" class="box-text">interviewer_user_id → auth</text>
+  <text x="772" y="399" class="box-text">score INT</text>
+  <text x="772" y="417" class="box-text">feedback TEXT</text>
+  <text x="772" y="435" class="box-text">created_at</text>
+
+  <!-- stage events -->
+  <rect x="440" y="520" width="320" height="154" rx="6" class="table"/>
+  <rect x="440" y="520" width="320" height="28" rx="6" fill="#b45309"/>
+  <rect x="440" y="536" width="320" height="12" fill="#b45309"/>
+  <text x="452" y="540" class="header-text">application_stage_events</text>
+  <rect x="441" y="552" width="318" height="18" class="pk"/>
+  <text x="452" y="565" class="box-text">id CHAR(36) PK</text>
+  <text x="452" y="583" class="box-text">application_id FK</text>
+  <text x="452" y="601" class="box-text">from_stage (NULL on first)</text>
+  <text x="452" y="619" class="box-text">to_stage</text>
+  <text x="452" y="637" class="box-text">changed_by_user_id → auth</text>
+  <text x="452" y="655" class="box-text">note / created_at</text>
+
+  <!-- apps -> assignments -->
+  <path d="M360 370 H440" class="edge" marker-end="url(#arrow)"/>
+  <text x="375" y="360" class="label">1 : N</text>
+
+  <!-- apps -> evaluations (elbow above assignments) -->
+  <path d="M360 350 H400 V280 H890 V300" class="edge" marker-end="url(#arrow)"/>
+  <text x="700" y="272" class="label">1 : N evaluations</text>
+
+  <!-- apps -> stage events -->
+  <path d="M200 474 V590 H440" class="edge" marker-end="url(#arrow)"/>
+  <text x="220" y="560" class="label">1 : N history</text>
+</svg>

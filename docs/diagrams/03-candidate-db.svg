@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560">
+  <defs>
+    <style>
+      .title { font: 700 22px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 12px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .box-title { font: 700 12px Segoe UI, Arial, sans-serif; fill: #111827; }
+      .box-text { font: 11px Consolas, monospace; fill: #374151; }
+      .header-text { font: 700 12px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .table { fill: #ffffff; stroke: #047857; stroke-width: 1.8; }
+      .join { fill: #ecfdf5; stroke: #047857; stroke-width: 1.5; }
+      .pk { fill: #fef3c7; }
+      .edge { stroke: #334155; stroke-width: 1.8; fill: none; }
+      .label { font: 11px Segoe UI, Arial, sans-serif; fill: #4b5563; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#334155"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="28" y="36" class="title">candidate_db — ER Diagram</text>
+  <text x="28" y="58" class="subtitle">Talent pool + CV files. Yellow = PK. Arrows are real FKs inside this database.</text>
+
+  <!-- candidates -->
+  <rect x="40" y="90" width="300" height="214" rx="6" class="table"/>
+  <rect x="40" y="90" width="300" height="28" rx="6" fill="#047857"/>
+  <rect x="40" y="106" width="300" height="12" fill="#047857"/>
+  <text x="52" y="110" class="header-text">candidates</text>
+  <rect x="41" y="122" width="298" height="18" class="pk"/>
+  <text x="52" y="135" class="box-text">id CHAR(36) PK</text>
+  <text x="52" y="153" class="box-text">first_name / last_name</text>
+  <text x="52" y="171" class="box-text">email VARCHAR(255) UK</text>
+  <text x="52" y="189" class="box-text">phone VARCHAR(50) NULL</text>
+  <text x="52" y="207" class="box-text">source MANUAL | CV_PARSE</text>
+  <text x="52" y="225" class="box-text">talent_status IN_POOL | HIRED | ARCHIVED</text>
+  <text x="52" y="243" class="box-text">created_by_user_id → auth.users (UUID)</text>
+  <text x="52" y="261" class="box-text">created_at / updated_at</text>
+  <text x="52" y="279" class="box-text">deleted_at (soft delete)</text>
+
+  <!-- tags -->
+  <rect x="600" y="90" width="260" height="82" rx="6" class="table"/>
+  <rect x="600" y="90" width="260" height="28" rx="6" fill="#047857"/>
+  <rect x="600" y="106" width="260" height="12" fill="#047857"/>
+  <text x="612" y="110" class="header-text">tags</text>
+  <rect x="601" y="122" width="258" height="18" class="pk"/>
+  <text x="612" y="135" class="box-text">id CHAR(36) PK</text>
+  <text x="612" y="153" class="box-text">name VARCHAR(64) UK</text>
+
+  <!-- candidate_tags join -->
+  <rect x="390" y="100" width="150" height="70" rx="6" class="join"/>
+  <text x="410" y="125" class="box-title">candidate_tags</text>
+  <text x="410" y="145" class="box-text">candidate_id</text>
+  <text x="410" y="161" class="box-text">tag_id</text>
+
+  <!-- documents -->
+  <rect x="520" y="320" width="340" height="190" rx="6" class="table"/>
+  <rect x="520" y="320" width="340" height="28" rx="6" fill="#047857"/>
+  <rect x="520" y="336" width="340" height="12" fill="#047857"/>
+  <text x="532" y="340" class="header-text">candidate_documents</text>
+  <rect x="521" y="352" width="338" height="18" class="pk"/>
+  <text x="532" y="365" class="box-text">id CHAR(36) PK</text>
+  <text x="532" y="383" class="box-text">candidate_id FK → candidates.id</text>
+  <text x="532" y="401" class="box-text">document_type CV</text>
+  <text x="532" y="419" class="box-text">original_filename / storage_path</text>
+  <text x="532" y="437" class="box-text">content_type / size_bytes</text>
+  <text x="532" y="455" class="box-text">uploaded_by_user_id → auth.users</text>
+  <text x="532" y="473" class="box-text">uploaded_at</text>
+
+  <!-- M:N lines: candidates <-> join <-> tags -->
+  <path d="M340 135 H390" class="edge" marker-end="url(#arrow)"/>
+  <path d="M540 135 H600" class="edge" marker-end="url(#arrow)"/>
+  <text x="430" y="92" class="label">M : N</text>
+
+  <!-- 1:N candidates -> documents -->
+  <path d="M190 304 V380 H520" class="edge" marker-end="url(#arrow)"/>
+  <text x="250" y="360" class="label">1 : N</text>
+</svg>

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="580" viewBox="0 0 980 580">
+  <defs>
+    <style>
+      .title { font: 700 22px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 12px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .h { font: 700 13px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .t { font: 11px Consolas, monospace; fill: #1f2937; }
+      .label { font: 11px Segoe UI, Arial, sans-serif; fill: #5b21b6; }
+      .muted { font: 11px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .box-title { font: 700 13px Segoe UI, Arial, sans-serif; fill: #111827; }
+      .line { stroke: #7c3aed; stroke-width: 2; fill: none; stroke-dasharray: 6 4; }
+    </style>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="28" y="34" class="title">Cross-Service UUID Links</text>
+  <text x="28" y="56" class="subtitle">No foreign keys across databases. These fields store UUIDs from another service and are checked over HTTP.</text>
+
+  <!-- AUTH (target hub) -->
+  <rect x="360" y="90" width="260" height="70" rx="10" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  <text x="430" y="120" class="h">auth_db.users</text>
+  <text x="420" y="142" class="h" style="fill:#dbeafe;font-weight:600;font-size:12px">id (UUID PK)</text>
+
+  <!-- CANDIDATE box -->
+  <rect x="40" y="240" width="300" height="130" rx="10" fill="#ffffff" stroke="#047857" stroke-width="2"/>
+  <rect x="40" y="240" width="300" height="32" rx="10" fill="#047857"/>
+  <rect x="40" y="258" width="300" height="14" fill="#047857"/>
+  <text x="120" y="262" class="h">candidate_db</text>
+  <text x="58" y="298" class="t">candidates.created_by_user_id</text>
+  <text x="58" y="320" class="t">documents.uploaded_by_user_id</text>
+  <text x="58" y="348" class="muted">both point to auth users.id</text>
+
+  <!-- APPLICATION box -->
+  <rect x="640" y="220" width="300" height="170" rx="10" fill="#ffffff" stroke="#c2410c" stroke-width="2"/>
+  <rect x="640" y="220" width="300" height="32" rx="10" fill="#c2410c"/>
+  <rect x="640" y="238" width="300" height="14" fill="#c2410c"/>
+  <text x="720" y="242" class="h">application_db</text>
+  <text x="658" y="278" class="t">jobs.created_by_user_id</text>
+  <text x="658" y="298" class="t">assignments.user_id</text>
+  <text x="658" y="318" class="t">stage_events.changed_by_user_id</text>
+  <text x="658" y="338" class="t">evaluations.interviewer_user_id</text>
+  <text x="658" y="368" class="muted">all point to auth users.id</text>
+
+  <!-- Arrow: candidate -> auth (up) -->
+  <path d="M190 240 V175 H490 V160" class="line" marker-end="url(#arr)"/>
+  <text x="200" y="198" class="label">→ users.id</text>
+
+  <!-- Arrow: application -> auth (up) -->
+  <path d="M790 220 V175 H490 V160" class="line" marker-end="url(#arr)"/>
+  <text x="620" y="198" class="label">→ users.id</text>
+
+  <!-- CANDIDATE id target for applications -->
+  <rect x="40" y="430" width="300" height="70" rx="10" fill="#d1fae5" stroke="#047857" stroke-width="2"/>
+  <text x="100" y="460" class="box-title">candidate_db.candidates</text>
+  <text x="120" y="482" class="t">id (UUID PK)</text>
+
+  <!-- APPLICATION candidate_id source -->
+  <rect x="640" y="430" width="300" height="70" rx="10" fill="#ffedd5" stroke="#c2410c" stroke-width="2"/>
+  <text x="690" y="460" class="box-title">applications.candidate_id</text>
+  <text x="700" y="482" class="muted">stored UUID only</text>
+
+  <!-- Arrow: application.candidate_id -> candidates.id -->
+  <path d="M640 465 H340" class="line" marker-end="url(#arr)"/>
+  <text x="430" y="452" class="label">candidate_id → candidates.id</text>
+
+  <!-- footer note -->
+  <text x="28" y="545" class="muted">Inside one DB, normal FKs still exist (e.g. applications.job_id → jobs.id). Those are not shown here.</text>
+</svg>

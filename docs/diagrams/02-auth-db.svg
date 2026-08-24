@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="360" viewBox="0 0 520 360">
+  <defs>
+    <style>
+      .title { font: 700 22px Segoe UI, Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 12px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+      .box-title { font: 700 13px Segoe UI, Arial, sans-serif; fill: #111827; }
+      .box-text { font: 11px Consolas, monospace; fill: #374151; }
+      .table { fill: #ffffff; stroke: #334155; stroke-width: 1.5; }
+      .header-text { font: 700 12px Segoe UI, Arial, sans-serif; fill: #f8fafc; }
+      .pk { fill: #fef3c7; }
+      .note { font: 11px Segoe UI, Arial, sans-serif; fill: #4b5563; }
+      .edge { stroke: #334155; stroke-width: 1.6; fill: none; }
+      .edge-logical { stroke: #7c3aed; stroke-width: 1.6; fill: none; stroke-dasharray: 6 4; }
+      .label { font: 10px Segoe UI, Arial, sans-serif; fill: #6b7280; }
+    </style>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#7c3aed"/>
+    </marker>
+  </defs>
+  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <text x="28" y="36" class="title">auth_db — ER Diagram</text>
+
+<text x="28" y="58" class="subtitle">Staff identity only. Candidates are not stored here.</text>
+<rect x="80" y="90" width="340" height="216" rx="6" class="table"/>
+<rect x="80" y="90" width="340" height="26" rx="6" fill="#1e293b"/>
+<rect x="80" y="104" width="340" height="12" fill="#1e293b"/>
+<text x="90" y="108" class="header-text">users</text>
+<rect x="81" y="120" width="338" height="18" class="pk"/>
+<text x="90" y="132" class="box-text">id : CHAR(36)  PK</text>
+<text x="90" y="150" class="box-text">email : VARCHAR(255)  UK</text>
+<text x="90" y="168" class="box-text">password_hash : VARCHAR(255)  NULL</text>
+<text x="90" y="186" class="box-text">first_name / last_name : VARCHAR(100)</text>
+<text x="90" y="204" class="box-text">role : ADMIN | HR | INTERVIEWER</text>
+<text x="90" y="222" class="box-text">account_status : ACTIVE | DISABLED</text>
+<text x="90" y="240" class="box-text">identity_provider : LOCAL | LDAP</text>
+<text x="90" y="258" class="box-text">ldap_dn : VARCHAR(512)  NULL</text>
+<text x="90" y="276" class="box-text">created_at / updated_at</text>
+<text x="90" y="294" class="box-text">deleted_at  (soft delete)</text>
+</svg>

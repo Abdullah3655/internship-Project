@@ -169,6 +169,18 @@ From each service folder:
 
 Windows: `mvnw.cmd test`.
 
+## Database architecture
+
+Diagrams in `docs/diagrams/` (open the `.svg` files in a browser or IDE):
+
+| File | What it shows |
+|------|----------------|
+| `01-system-overview.svg` | Three databases and how they relate |
+| `02-auth-db.svg` | `auth_db` ER |
+| `03-candidate-db.svg` | `candidate_db` ER |
+| `04-application-db.svg` | `application_db` ER |
+| `05-cross-service-links.svg` | UUID links across services (no cross-DB FKs) |
+
 ## Project layout
 
 ```text
@@ -177,6 +189,7 @@ internship-project/
   candidate-service/     # :8082 + compose (MySQL 3308), CV files under uploads/
   application-service/   # :8083 + compose (MySQL 3309); calls auth + candidate over HTTP
   postman/               # collection, environment, sample CVs
+  docs/diagrams/         # database architecture diagrams
   README.md
 ```
 

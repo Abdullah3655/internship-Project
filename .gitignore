@@ -7,3 +7,6 @@
 
 .DS_Store
 Thumbs.db
+
+# Local notes for development only (not for the repo)
+docs/database-architecture.md
