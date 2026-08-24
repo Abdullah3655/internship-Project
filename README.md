@@ -139,7 +139,7 @@ Files:
 
 - `postman/Recruitment-Platform.postman_collection.json` — full API flow
 - `postman/Local.postman_environment.json` — local URLs + variables
-- `postman/samples/` — sample CV PDFs for upload requests (`Abdullah_Emad_Resume.pdf`, `Alice_Smith_CV.pdf`, `Bob_Jones_CV.pdf`)
+- `samples/cv/` — sample CV PDFs for upload requests (`Abdullah_Emad_Resume.pdf`, `Alice_Smith_CV.pdf`, `Bob_Jones_CV.pdf`)
 
 Setup:
 
@@ -188,7 +188,8 @@ internship-project/
   auth-service/          # :8081 + compose (MySQL 3307, OpenLDAP 1389)
   candidate-service/     # :8082 + compose (MySQL 3308), CV files under uploads/
   application-service/   # :8083 + compose (MySQL 3309); calls auth + candidate over HTTP
-  postman/               # collection, environment, sample CVs
+  postman/               # collection and local environment
+  samples/cv/            # sample CV PDFs used in Postman upload requests
   docs/diagrams/         # database architecture diagrams
   README.md
 ```
