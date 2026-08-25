@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,6 +29,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -40,14 +42,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/candidates", "/api/candidates/{id}")
+                        .requestMatchers(HttpMethod.GET, "/api/candidates", "/api/candidates/{id}",
+                                "/api/candidates/{id}/documents/{documentId}")
                         .hasAnyRole("HR", "ADMIN", "INTERVIEWER")
                         .requestMatchers(HttpMethod.POST, "/api/candidates",
                                 "/api/candidates/cv/bulk", "/api/candidates/{id}/cv")
                         .hasAnyRole("HR", "ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/candidates/{id}")
                         .hasAnyRole("HR", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/candidates/{id}")
+                        .requestMatchers(HttpMethod.DELETE, "/api/candidates/{id}",
+                                "/api/candidates/{id}/documents/{documentId}")
                         .hasAnyRole("HR", "ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions

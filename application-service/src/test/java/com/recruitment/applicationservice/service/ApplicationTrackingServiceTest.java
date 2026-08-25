@@ -147,6 +147,37 @@ class ApplicationTrackingServiceTest {
     }
 
     @Test
+    void changeStageRejectsInvalidTransition() {
+        Application application = application(PipelineStage.HIRED);
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> applicationTrackingService.changeStage(
+                APPLICATION_ID,
+                new StageChangeRequest(PipelineStage.APPLIED, "reset"),
+                hr,
+                AUTH
+        )).isInstanceOf(BadRequestException.class);
+
+        verify(applicationRepository, never()).save(any());
+        verify(stageEventRepository, never()).save(any());
+    }
+
+    @Test
+    void changeStageRejectsHiredFromNonOffer() {
+        Application application = application(PipelineStage.INTERVIEW);
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> applicationTrackingService.changeStage(
+                APPLICATION_ID,
+                new StageChangeRequest(PipelineStage.HIRED, "skip offer"),
+                hr,
+                AUTH
+        )).isInstanceOf(BadRequestException.class);
+
+        verify(applicationRepository, never()).save(any());
+    }
+
+    @Test
     void deleteRemovesApplicationAndCascadesChildren() {
         Application application = application(PipelineStage.INTERVIEW);
         when(applicationRepository.findByIdWithJob(APPLICATION_ID)).thenReturn(Optional.of(application));
@@ -173,6 +204,44 @@ class ApplicationTrackingServiceTest {
                 new com.recruitment.applicationservice.dto.CreateEvaluationRequest(4, "ok"),
                 interviewer
         )).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+
+        verify(evaluationRepository, never()).save(any());
+    }
+
+    @Test
+    void assignRequiresInterviewLoopStage() {
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID))
+                .thenReturn(Optional.of(application(PipelineStage.HIRED)));
+
+        assertThatThrownBy(() -> applicationTrackingService.assign(
+                APPLICATION_ID,
+                new com.recruitment.applicationservice.dto.CreateAssignmentRequest(
+                        UUID.fromString("77777777-7777-7777-7777-777777777777"),
+                        com.recruitment.applicationservice.domain.AssignmentRole.INTERVIEWER
+                ),
+                AUTH
+        )).isInstanceOf(BadRequestException.class);
+
+        verify(assignmentRepository, never()).save(any());
+    }
+
+    @Test
+    void evaluateRequiresInterviewLoopStage() {
+        UserPrincipal interviewer = new UserPrincipal(
+                UUID.fromString("77777777-7777-7777-7777-777777777777"),
+                "interviewer@company.com",
+                "INTERVIEWER"
+        );
+        when(applicationRepository.findByIdWithJob(APPLICATION_ID))
+                .thenReturn(Optional.of(application(PipelineStage.OFFER)));
+        when(assignmentRepository.existsByApplicationIdAndUserId(APPLICATION_ID, interviewer.getId()))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> applicationTrackingService.evaluate(
+                APPLICATION_ID,
+                new com.recruitment.applicationservice.dto.CreateEvaluationRequest(4, "ok"),
+                interviewer
+        )).isInstanceOf(BadRequestException.class);
 
         verify(evaluationRepository, never()).save(any());
     }

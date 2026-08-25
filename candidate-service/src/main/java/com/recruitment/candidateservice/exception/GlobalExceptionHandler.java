@@ -37,6 +37,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(DocumentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentNotFound(DocumentNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
     @ExceptionHandler(DuplicateCandidateEmailException.class)
     public ResponseEntity<ErrorResponse> handleDuplicateEmail(DuplicateCandidateEmailException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());
@@ -50,6 +55,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(InvalidFileException.class)
     public ResponseEntity<ErrorResponse> handleInvalidFile(InvalidFileException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
         return error(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

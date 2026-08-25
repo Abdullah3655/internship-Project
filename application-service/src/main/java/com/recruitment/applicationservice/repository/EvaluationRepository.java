@@ -11,5 +11,9 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, UUID> {
 
     List<Evaluation> findByApplicationIdOrderByCreatedAtDesc(UUID applicationId);
 
+    long countByApplicationId(UUID applicationId);
+
     Optional<Evaluation> findByIdAndApplicationId(UUID id, UUID applicationId);
+
+    boolean existsByApplicationIdAndInterviewerUserId(UUID applicationId, UUID interviewerUserId);
 }

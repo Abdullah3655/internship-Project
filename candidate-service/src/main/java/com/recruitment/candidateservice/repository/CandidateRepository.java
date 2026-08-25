@@ -23,10 +23,17 @@ public interface CandidateRepository extends JpaRepository<Candidate, UUID> {
     List<Candidate> findByDeletedAtIsNullOrderByCreatedAtDesc();
 
     @Query("""
-            select distinct c from Candidate c
-            join c.tags t
-            where c.deletedAt is null and lower(t.name) = lower(:tag)
+            select c from Candidate c
+            where c.deletedAt is null
+              and (
+                select count(distinct lower(t.name))
+                from c.tags t
+                where lower(t.name) in :tags
+              ) = :tagCount
             order by c.createdAt desc
             """)
-    List<Candidate> findByTagAndDeletedAtIsNull(@Param("tag") String tag);
+    List<Candidate> findByAllTagsAndDeletedAtIsNull(
+            @Param("tags") List<String> tags,
+            @Param("tagCount") long tagCount
+    );
 }

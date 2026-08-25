@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -32,6 +33,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -44,12 +46,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/refresh", "/api/auth/logout")
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/register/hr", "/api/auth/register/interviewer",
                                 "/api/auth/register/ldap/hr", "/api/auth/register/ldap/interviewer")
                         .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/auth/users/{id}").hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/auth/users", "/api/auth/users/{id}")
+                        .hasAnyRole("HR", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/auth/users/{id}")
+                        .hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) ->

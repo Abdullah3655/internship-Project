@@ -8,7 +8,9 @@ import com.recruitment.authservice.domain.UserRole;
 import com.recruitment.authservice.dto.AuthResponse;
 import com.recruitment.authservice.dto.LoginRequest;
 import com.recruitment.authservice.dto.RegisterRequest;
+import com.recruitment.authservice.dto.UpdateManagedUserRequest;
 import com.recruitment.authservice.dto.UserResponse;
+import com.recruitment.authservice.exception.BadRequestException;
 import com.recruitment.authservice.exception.EmailAlreadyExistsException;
 import com.recruitment.authservice.exception.InvalidCredentialsException;
 import com.recruitment.authservice.exception.InvalidRefreshTokenException;
@@ -17,6 +19,7 @@ import com.recruitment.authservice.repository.UserRepository;
 import com.recruitment.authservice.security.JwtService;
 import com.recruitment.authservice.security.LdapAuthenticator;
 import com.recruitment.authservice.security.LdapUserProvisioner;
+import com.recruitment.authservice.security.UserPrincipal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -202,6 +205,106 @@ class AuthServiceTest {
 
         assertThatThrownBy(() -> authService.refresh("missing"))
                 .isInstanceOf(InvalidRefreshTokenException.class);
+    }
+
+    @Test
+    void logoutDeletesRefreshToken() {
+        authService.logout("refresh-token-to-revoke");
+
+        verify(refreshTokenRepository).deleteByTokenHash(any());
+    }
+
+    @Test
+    void logoutIgnoresBlankToken() {
+        authService.logout("  ");
+
+        verify(refreshTokenRepository, never()).deleteByTokenHash(any());
+    }
+
+    @Test
+    void listUsersFiltersByRole() {
+        User interviewer = ldapHrUser();
+        interviewer.setRole(UserRole.INTERVIEWER);
+        when(userRepository.findByRoleAndDeletedAtIsNullOrderByLastNameAscFirstNameAsc(UserRole.INTERVIEWER))
+                .thenReturn(java.util.List.of(interviewer));
+
+        var response = authService.listUsers(UserRole.INTERVIEWER);
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).role()).isEqualTo(UserRole.INTERVIEWER);
+    }
+
+    @Test
+    void updateManagedUserSwitchesRoleAndStatus() {
+        User target = hrUser();
+        UserPrincipal admin = new UserPrincipal(adminUser());
+        when(userRepository.findByIdAndDeletedAtIsNull(target.getId())).thenReturn(Optional.of(target));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = authService.updateManagedUser(
+                target.getId(),
+                new UpdateManagedUserRequest(UserRole.INTERVIEWER, AccountStatus.DISABLED),
+                admin
+        );
+
+        assertThat(response.role()).isEqualTo(UserRole.INTERVIEWER);
+        assertThat(response.accountStatus()).isEqualTo(AccountStatus.DISABLED);
+        verify(refreshTokenRepository).deleteByUser_Id(target.getId());
+    }
+
+    @Test
+    void updateManagedUserRejectsSelf() {
+        User admin = adminUser();
+        UserPrincipal actor = new UserPrincipal(admin);
+
+        assertThatThrownBy(() -> authService.updateManagedUser(
+                admin.getId(),
+                new UpdateManagedUserRequest(UserRole.HR, AccountStatus.ACTIVE),
+                actor
+        )).isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("your own");
+    }
+
+    @Test
+    void updateManagedUserRejectsAdminTarget() {
+        User target = adminUser();
+        setId(target, UUID.fromString("99999999-9999-9999-9999-999999999999"));
+        UserPrincipal actor = new UserPrincipal(adminUser());
+        when(userRepository.findByIdAndDeletedAtIsNull(target.getId())).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> authService.updateManagedUser(
+                target.getId(),
+                new UpdateManagedUserRequest(UserRole.HR, AccountStatus.ACTIVE),
+                actor
+        )).isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Admin accounts");
+    }
+
+    @Test
+    void updateManagedUserRejectsAssigningAdmin() {
+        User target = hrUser();
+        UserPrincipal actor = new UserPrincipal(adminUser());
+        when(userRepository.findByIdAndDeletedAtIsNull(target.getId())).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> authService.updateManagedUser(
+                target.getId(),
+                new UpdateManagedUserRequest(UserRole.ADMIN, AccountStatus.ACTIVE),
+                actor
+        )).isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("HR or INTERVIEWER");
+    }
+
+    private static User adminUser() {
+        User user = new User();
+        setId(user, UUID.fromString("22222222-2222-2222-2222-222222222222"));
+        user.setEmail("admin@company.com");
+        user.setPasswordHash("hashed");
+        user.setFirstName("Ada");
+        user.setLastName("Admin");
+        user.setRole(UserRole.ADMIN);
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setIdentityProvider(IdentityProvider.LOCAL);
+        return user;
     }
 
     private static User hrUser() {

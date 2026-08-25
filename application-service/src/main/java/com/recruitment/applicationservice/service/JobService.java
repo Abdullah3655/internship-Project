@@ -12,13 +12,13 @@ import com.recruitment.applicationservice.exception.ResourceNotFoundException;
 import com.recruitment.applicationservice.repository.JobRepository;
 import com.recruitment.applicationservice.repository.TagRepository;
 import com.recruitment.applicationservice.security.UserPrincipal;
+import com.recruitment.applicationservice.util.TagNames;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -125,14 +125,7 @@ public class JobService {
 
     private Set<Tag> resolveTags(List<String> rawTags) {
         Set<Tag> tags = new HashSet<>();
-        if (rawTags == null) {
-            return tags;
-        }
-        for (String raw : rawTags) {
-            if (raw == null || raw.isBlank()) {
-                continue;
-            }
-            String name = raw.trim().toLowerCase(Locale.ROOT);
+        for (String name : TagNames.normalize(rawTags)) {
             Tag tag = tagRepository.findByNameIgnoreCase(name).orElseGet(() -> {
                 Tag created = new Tag();
                 created.setName(name);

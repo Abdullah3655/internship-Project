@@ -9,6 +9,7 @@ import com.recruitment.applicationservice.domain.Evaluation;
 import com.recruitment.applicationservice.domain.Job;
 import com.recruitment.applicationservice.domain.JobStatus;
 import com.recruitment.applicationservice.domain.PipelineStage;
+import com.recruitment.applicationservice.domain.PipelineTransitions;
 import com.recruitment.applicationservice.dto.ApplicationListResponse;
 import com.recruitment.applicationservice.dto.ApplicationResponse;
 import com.recruitment.applicationservice.dto.AssignmentListResponse;
@@ -90,7 +91,7 @@ public class ApplicationTrackingService {
         event.setNote("Application created");
         stageEventRepository.save(event);
 
-        return ApplicationResponse.from(application);
+        return toResponse(application);
     }
 
     @Transactional(readOnly = true)
@@ -115,14 +116,14 @@ public class ApplicationTrackingService {
         } else {
             applications = applicationRepository.findAllByOrderByCreatedAtDesc();
         }
-        return new ApplicationListResponse(applications.stream().map(ApplicationResponse::from).toList());
+        return new ApplicationListResponse(applications.stream().map(this::toResponse).toList());
     }
 
     @Transactional(readOnly = true)
     public ApplicationResponse getById(UUID id, UserPrincipal actor) {
         Application application = requireApplication(id);
         requireAssignedIfInterviewer(application.getId(), actor);
-        return ApplicationResponse.from(application);
+        return toResponse(application);
     }
 
     @Transactional
@@ -137,6 +138,12 @@ public class ApplicationTrackingService {
         PipelineStage to = request.toStage();
         if (from == to) {
             throw new BadRequestException("Application is already in stage " + to);
+        }
+        if (!PipelineTransitions.isAllowed(from, to)) {
+            throw new BadRequestException(
+                    "Cannot move from " + from + " to " + to
+                            + ". Allowed next stages: " + PipelineTransitions.allowedFrom(from)
+            );
         }
 
         application.setCurrentStage(to);
@@ -177,6 +184,12 @@ public class ApplicationTrackingService {
     @Transactional
     public AssignmentResponse assign(UUID id, CreateAssignmentRequest request, String authorization) {
         Application application = requireApplication(id);
+        if (!PipelineTransitions.allowsInterviewerAssignment(application.getCurrentStage())) {
+            throw new BadRequestException(
+                    "Interviewers can only be assigned during Screening or Interview "
+                            + "(current stage: " + application.getCurrentStage() + ")"
+            );
+        }
         authServiceClient.requireInterviewer(request.userId(), authorization);
         if (assignmentRepository.existsByApplicationIdAndUserIdAndAssignmentRole(
                 id, request.userId(), request.assignmentRole())) {
@@ -221,6 +234,15 @@ public class ApplicationTrackingService {
     public EvaluationResponse evaluate(UUID id, CreateEvaluationRequest request, UserPrincipal actor) {
         Application application = requireApplication(id);
         requireAssignedIfInterviewer(application.getId(), actor);
+        if (!PipelineTransitions.allowsEvaluation(application.getCurrentStage())) {
+            throw new BadRequestException(
+                    "Evaluations are only accepted during Screening or Interview "
+                            + "(current stage: " + application.getCurrentStage() + ")"
+            );
+        }
+        if (evaluationRepository.existsByApplicationIdAndInterviewerUserId(id, actor.getId())) {
+            throw new ConflictException("You have already submitted an evaluation for this application");
+        }
         Evaluation evaluation = new Evaluation();
         evaluation.setApplication(application);
         evaluation.setInterviewerUserId(actor.getId());
@@ -266,5 +288,12 @@ public class ApplicationTrackingService {
 
     private static boolean isInterviewer(UserPrincipal actor) {
         return actor != null && "INTERVIEWER".equalsIgnoreCase(actor.getRole());
+    }
+
+    private ApplicationResponse toResponse(Application application) {
+        return ApplicationResponse.from(
+                application,
+                evaluationRepository.countByApplicationId(application.getId())
+        );
     }
 }

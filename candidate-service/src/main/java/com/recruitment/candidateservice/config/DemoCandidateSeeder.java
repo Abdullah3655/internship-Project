@@ -6,8 +6,6 @@ import com.recruitment.candidateservice.domain.Tag;
 import com.recruitment.candidateservice.domain.TalentStatus;
 import com.recruitment.candidateservice.repository.CandidateRepository;
 import com.recruitment.candidateservice.repository.TagRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -23,8 +21,6 @@ import java.util.UUID;
 @Component
 @Profile("!test")
 public class DemoCandidateSeeder implements ApplicationRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoCandidateSeeder.class);
 
     private final CandidateRepository candidateRepository;
     private final TagRepository tagRepository;
@@ -53,8 +49,6 @@ public class DemoCandidateSeeder implements ApplicationRunner {
                 "+15551234567",
                 List.of("python", "sql")
         );
-        log.info("Demo candidates ready: alice@example.com ({})", DemoIds.ALICE);
-        log.info("Demo candidates ready: bob@example.com ({})", DemoIds.BOB);
     }
 
     private void seedCandidate(
@@ -65,7 +59,8 @@ public class DemoCandidateSeeder implements ApplicationRunner {
             String phone,
             List<String> tagNames
     ) {
-        if (candidateRepository.existsByEmailIgnoreCaseAndDeletedAtIsNull(email)) {
+        if (candidateRepository.existsById(id)
+                || candidateRepository.existsByEmailIgnoreCaseAndDeletedAtIsNull(email)) {
             return;
         }
         Candidate candidate = new Candidate();

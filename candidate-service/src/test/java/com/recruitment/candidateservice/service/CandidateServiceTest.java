@@ -10,6 +10,7 @@ import com.recruitment.candidateservice.dto.CreateCandidateRequest;
 import com.recruitment.candidateservice.dto.CvUploadResponse;
 import com.recruitment.candidateservice.dto.ParsedCvData;
 import com.recruitment.candidateservice.exception.DuplicateCandidateEmailException;
+import com.recruitment.candidateservice.exception.BadRequestException;
 import com.recruitment.candidateservice.repository.CandidateDocumentRepository;
 import com.recruitment.candidateservice.repository.CandidateRepository;
 import com.recruitment.candidateservice.repository.TagRepository;
@@ -107,6 +108,17 @@ class CandidateServiceTest {
                 hr,
                 CandidateSource.MANUAL
         )).isInstanceOf(DuplicateCandidateEmailException.class);
+    }
+
+    @Test
+    void createRejectsInvalidTag() {
+        when(candidateRepository.existsByEmailIgnoreCaseAndDeletedAtIsNull("alice@example.com")).thenReturn(false);
+
+        assertThatThrownBy(() -> candidateService.create(
+                new CreateCandidateRequest("Alice", "Smith", "alice@example.com", null, List.of("Bad Tag!")),
+                hr,
+                CandidateSource.MANUAL
+        )).isInstanceOf(BadRequestException.class);
     }
 
     @Test

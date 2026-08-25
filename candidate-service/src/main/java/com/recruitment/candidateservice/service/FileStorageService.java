@@ -3,6 +3,8 @@ package com.recruitment.candidateservice.service;
 import com.recruitment.candidateservice.config.FileUploadProperties;
 import com.recruitment.candidateservice.exception.InvalidFileException;
 import com.recruitment.candidateservice.exception.StorageException;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -63,6 +65,32 @@ public class FileStorageService {
             return new StoredFile(original, destination.toString(), contentType, bytes.length);
         } catch (IOException ex) {
             throw new StorageException("Could not store CV on server", ex);
+        }
+    }
+
+    public Resource loadAsResource(String storagePath) {
+        Path path = Path.of(storagePath).toAbsolutePath().normalize();
+        if (!path.startsWith(uploadRoot)) {
+            throw new InvalidFileException("Invalid document storage path");
+        }
+        if (!Files.isRegularFile(path)) {
+            throw new InvalidFileException("Document file is missing on server");
+        }
+        return new FileSystemResource(path);
+    }
+
+    public void deleteStoredFile(String storagePath) {
+        if (storagePath == null || storagePath.isBlank()) {
+            return;
+        }
+        Path path = Path.of(storagePath).toAbsolutePath().normalize();
+        if (!path.startsWith(uploadRoot)) {
+            throw new InvalidFileException("Invalid document storage path");
+        }
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException ex) {
+            throw new StorageException("Could not delete CV file on server", ex);
         }
     }
 

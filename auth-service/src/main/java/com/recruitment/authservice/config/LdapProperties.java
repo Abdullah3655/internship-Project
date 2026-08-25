@@ -5,9 +5,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "ldap")
 public class LdapProperties {
 
-    /**
-     * When false, LDAP login and LDAP register are unavailable.
-     */
     private boolean enabled = false;
 
     private String url = "ldap://localhost:1389";

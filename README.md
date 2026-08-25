@@ -155,9 +155,29 @@ LDAP demo user: `ldap.hr@company.com` / `password123` (also exists in OpenLDAP a
 
 All three apps share the same JWT secret (`jwt.secret` in each `application.properties`). Tokens from auth-service work on the other services.
 
-Login returns a short-lived **access token** (15 minutes) and a **refresh token** (7 days). Use `POST /api/auth/refresh` with `{ "refreshToken": "..." }` to get a new pair. The old refresh token is replaced. Response fields are `accessToken` and `refreshToken` only.
+Login returns a short-lived **access token** (15 minutes) and a **refresh token** (7 days). Use `POST /api/auth/refresh` with `{ "refreshToken": "..." }` to get a new pair. The old refresh token is replaced. Use `POST /api/auth/logout` with the same body to revoke the refresh token (204). Response fields are `accessToken` and `refreshToken` only.
+
+`GET /api/auth/users?role=INTERVIEWER` (HR/ADMIN) lists teammates for assignment pickers — the UI never asks HR to paste UUIDs.
+
+**Tags** on candidates and jobs must be lowercase (2–32 chars, letters/digits/hyphens), max 12 per request. Invalid tags return **400**.
+
+**Pipeline stages** move forward only (skips allowed, e.g. APPLIED → INTERVIEW). `HIRED` only from `OFFER`. `DISQUALIFIED` can reopen to `APPLIED`. No backwards moves.
 
 `application-service` calls auth-service and candidate-service through Spring **HTTP Exchange** interfaces (`AuthApi`, `CandidateApi`).
+
+## Frontend
+
+React app in `frontend/` (Vite + TypeScript).
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173 — CORS is enabled on all three APIs for that origin.
+
+Role-aware workspace: HR/Admin manage candidates, jobs, pipeline, and interviewer assignment by name; Interviewers see assigned applications and submit evaluations; Admin registers team members.
 
 ## Postman
 
@@ -174,7 +194,8 @@ Setup:
 3. Run **Auth → Login** with `hr@company.com` / `password123`.
 4. The login request saves `access_token` and `refresh_token` automatically; other requests use `Authorization: Bearer {{access_token}}`.
 5. If the access token expires, run **Auth → Refresh Token**.
-6. Create/list flows also fill `candidate_id`, `job_id`, `application_id`, etc. when those requests succeed.
+6. Run **Auth → Logout** to revoke the refresh token and clear saved tokens.
+7. Create/list flows also fill `candidate_id`, `job_id`, `application_id`, etc. when those requests succeed.
 
 Suggested happy path:
 

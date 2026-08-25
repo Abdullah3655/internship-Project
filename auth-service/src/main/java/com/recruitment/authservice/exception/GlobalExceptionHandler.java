@@ -35,6 +35,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex) {
+        return error(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleEmailExists(EmailAlreadyExistsException ex) {
         return error(HttpStatus.CONFLICT, ex.getMessage());

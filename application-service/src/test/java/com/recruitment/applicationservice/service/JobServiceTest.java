@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -66,6 +67,27 @@ class JobServiceTest {
         assertThat(response.title()).isEqualTo("Java Engineer");
         assertThat(response.createdByUserId()).isEqualTo(hr.getId());
         assertThat(response.tags()).containsExactly("java", "spring");
+    }
+
+    @Test
+    void createRejectsInvalidTag() {
+        UserPrincipal hr = new UserPrincipal(
+                UUID.fromString("11111111-1111-1111-1111-111111111111"),
+                "hr@company.com",
+                "HR"
+        );
+
+        assertThatThrownBy(() -> jobService.create(
+                new CreateJobRequest(
+                        "Java Engineer",
+                        "Engineering",
+                        "Remote",
+                        "Build APIs",
+                        EmploymentType.FULL_TIME,
+                        List.of("Invalid Tag!")
+                ),
+                hr
+        )).isInstanceOf(com.recruitment.applicationservice.exception.BadRequestException.class);
     }
 
     private static void setId(Job job, UUID id) {

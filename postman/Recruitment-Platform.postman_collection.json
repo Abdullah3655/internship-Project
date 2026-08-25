@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Recruitment Platform",
-    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token and refresh_token. Use Auth → Refresh Token if the access token expires.\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples (PDF): samples/cv/Abdullah_Emad_Resume.pdf, Alice_Smith_CV.pdf, Bob_Jones_CV.pdf.",
+    "description": "Local APIs: auth :8081, candidates :8082, applications :8083.\n\nSetup:\n1. Import this collection and Local.postman_environment.json\n2. Select environment Local\n3. Run Auth → Login (HR) — saves access_token and refresh_token. Use Auth → Refresh Token if the access token expires. Use Auth → Logout to revoke the refresh token.\n\nDemo logins (password password123):\n- hr@company.com\n- admin@company.com\n- interviewer@company.com\n- ldap.hr@company.com\n\nEnvironment already has seeded Alice / Java Engineer / application IDs. Create requests use new emails/titles so they do not conflict with seed data.\n\nCV samples (PDF): samples/cv/Abdullah_Emad_Resume.pdf, Alice_Smith_CV.pdf, Bob_Jones_CV.pdf.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -232,6 +232,37 @@
           }
         },
         {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 204) {",
+                  "    pm.environment.unset('access_token');",
+                  "    pm.environment.unset('refresh_token');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/logout",
+            "description": "Revokes the refresh token server-side. Client should discard access_token too (204 No Content)."
+          }
+        },
+        {
           "name": "Get Current User",
           "event": [
             {
@@ -258,6 +289,24 @@
           }
         },
         {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": {
+              "raw": "{{auth_base_url}}/api/auth/users?role=INTERVIEWER",
+              "host": ["{{auth_base_url}}"],
+              "path": ["api", "auth", "users"],
+              "query": [
+                { "key": "role", "value": "INTERVIEWER", "description": "Optional. ADMIN | HR | INTERVIEWER" }
+              ]
+            },
+            "description": "HR/ADMIN only. Use for interviewer pickers."
+          }
+        },
+        {
           "name": "Get User By ID",
           "request": {
             "method": "GET",
@@ -266,6 +315,22 @@
             ],
             "url": "{{auth_base_url}}/api/auth/users/{{interviewer_user_id}}",
             "description": "HR/ADMIN only."
+          }
+        },
+        {
+          "name": "Update User Role/Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"INTERVIEWER\",\n  \"accountStatus\": \"ACTIVE\"\n}"
+            },
+            "url": "{{auth_base_url}}/api/auth/users/{{interviewer_user_id}}",
+            "description": "ADMIN only. Role HR|INTERVIEWER. Cannot edit self or ADMIN accounts."
           }
         },
         {
@@ -394,11 +459,12 @@
               { "key": "Accept", "value": "application/json;version={{api_version}}" }
             ],
             "url": {
-              "raw": "{{candidate_base_url}}/api/candidates?tag=java",
+              "raw": "{{candidate_base_url}}/api/candidates?tags=java&tags=spring",
               "host": ["{{candidate_base_url}}"],
               "path": ["api", "candidates"],
               "query": [
-                { "key": "tag", "value": "java", "description": "Optional. Disable to list all." }
+                { "key": "tags", "value": "java", "description": "Optional. Repeat for AND (must have all). Singular `tag` still works." },
+                { "key": "tags", "value": "spring", "description": "Second tag (AND)." }
               ]
             }
           }
@@ -441,6 +507,23 @@
         },
         {
           "name": "Upload CV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    const docId = json.document && json.document.id;",
+                  "    if (docId) {",
+                  "        pm.environment.set('document_id', docId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -458,7 +541,29 @@
               ]
             },
             "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}/cv",
-            "description": "form-data field name: file."
+            "description": "form-data field name: file. Saves document_id for Download Document."
+          }
+        },
+        {
+          "name": "Download Document",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "*/*" }
+            ],
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}/documents/{{document_id}}",
+            "description": "Returns the CV file bytes (PDF/TXT open inline in Postman’s preview when possible). Run Upload CV first so document_id is set, or paste a document id from Get Candidate → documents[].id."
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json;version={{api_version}}" }
+            ],
+            "url": "{{candidate_base_url}}/api/candidates/{{candidate_id}}/documents/{{document_id}}",
+            "description": "HR/ADMIN only. Removes the document row and stored file."
           }
         },
         {

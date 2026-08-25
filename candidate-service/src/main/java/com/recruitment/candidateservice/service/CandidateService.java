@@ -15,13 +15,17 @@ import com.recruitment.candidateservice.dto.CvUploadResponse;
 import com.recruitment.candidateservice.dto.DocumentResponse;
 import com.recruitment.candidateservice.dto.ParsedCvData;
 import com.recruitment.candidateservice.dto.UpdateCandidateRequest;
+import com.recruitment.candidateservice.exception.BadRequestException;
 import com.recruitment.candidateservice.exception.CandidateNotFoundException;
+import com.recruitment.candidateservice.exception.DocumentNotFoundException;
 import com.recruitment.candidateservice.exception.DuplicateCandidateEmailException;
 import com.recruitment.candidateservice.exception.InvalidFileException;
 import com.recruitment.candidateservice.repository.CandidateDocumentRepository;
 import com.recruitment.candidateservice.repository.CandidateRepository;
 import com.recruitment.candidateservice.repository.TagRepository;
 import com.recruitment.candidateservice.security.UserPrincipal;
+import com.recruitment.candidateservice.util.TagNames;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +38,10 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class CandidateService {
@@ -69,11 +75,42 @@ public class CandidateService {
     }
 
     @Transactional(readOnly = true)
-    public CandidateListResponse list(String tag) {
-        List<Candidate> candidates = (tag == null || tag.isBlank())
+    public CandidateListResponse list(List<String> tags) {
+        List<String> normalized = normalizeFilterTags(tags);
+        List<Candidate> candidates = normalized.isEmpty()
                 ? candidateRepository.findByDeletedAtIsNullOrderByCreatedAtDesc()
-                : candidateRepository.findByTagAndDeletedAtIsNull(tag.trim());
-        return new CandidateListResponse(candidates.stream().map(CandidateResponse::from).toList());
+                : candidateRepository.findByAllTagsAndDeletedAtIsNull(normalized, normalized.size());
+
+        Map<UUID, List<CandidateDocument>> documentsByCandidate = Map.of();
+        if (!candidates.isEmpty()) {
+            List<UUID> ids = candidates.stream().map(Candidate::getId).toList();
+            documentsByCandidate = documentRepository.findByCandidateIdInOrderByUploadedAtDesc(ids).stream()
+                    .collect(Collectors.groupingBy(doc -> doc.getCandidate().getId()));
+        }
+
+        Map<UUID, List<CandidateDocument>> docs = documentsByCandidate;
+        return new CandidateListResponse(candidates.stream()
+                .map(c -> CandidateResponse.from(c, docs.getOrDefault(c.getId(), List.of())))
+                .toList());
+    }
+
+    private static List<String> normalizeFilterTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> unique = new LinkedHashSet<>();
+        for (String raw : tags) {
+            if (raw == null || raw.isBlank()) {
+                continue;
+            }
+            for (String part : raw.split("[,;\\s]+")) {
+                if (part.isBlank()) {
+                    continue;
+                }
+                unique.add(part.trim().toLowerCase(Locale.ROOT));
+            }
+        }
+        return new ArrayList<>(unique);
     }
 
     @Transactional(readOnly = true)
@@ -81,6 +118,30 @@ public class CandidateService {
         Candidate candidate = requireCandidate(id);
         List<CandidateDocument> documents = documentRepository.findByCandidateIdOrderByUploadedAtDesc(id);
         return CandidateResponse.from(candidate, documents);
+    }
+
+    @Transactional(readOnly = true)
+    public StoredDocument loadDocument(UUID candidateId, UUID documentId) {
+        requireCandidate(candidateId);
+        CandidateDocument document = documentRepository.findByIdAndCandidateId(documentId, candidateId)
+                .orElseThrow(() -> new DocumentNotFoundException(documentId.toString()));
+        Resource resource = fileStorageService.loadAsResource(document.getStoragePath());
+        return new StoredDocument(
+                document.getOriginalFilename(),
+                document.getContentType(),
+                document.getSizeBytes(),
+                resource
+        );
+    }
+
+    @Transactional
+    public void deleteDocument(UUID candidateId, UUID documentId) {
+        requireCandidate(candidateId);
+        CandidateDocument document = documentRepository.findByIdAndCandidateId(documentId, candidateId)
+                .orElseThrow(() -> new DocumentNotFoundException(documentId.toString()));
+        String storagePath = document.getStoragePath();
+        documentRepository.delete(document);
+        fileStorageService.deleteStoredFile(storagePath);
     }
 
     @Transactional
@@ -108,7 +169,10 @@ public class CandidateService {
         if (request.tags() != null) {
             candidate.setTags(resolveTags(request.tags()));
         }
-        return CandidateResponse.from(candidateRepository.save(candidate));
+        candidate = candidateRepository.save(candidate);
+        List<CandidateDocument> documents =
+                documentRepository.findByCandidateIdOrderByUploadedAtDesc(candidate.getId());
+        return CandidateResponse.from(candidate, documents);
     }
 
     @Transactional
@@ -116,7 +180,6 @@ public class CandidateService {
         Candidate candidate = requireCandidate(id);
         candidate.setDeletedAt(Instant.now());
         candidate.setTalentStatus(TalentStatus.ARCHIVED);
-        // Free the unique email so a new candidate can reuse the address after soft-delete.
         String suffix = "#deleted#" + candidate.getId();
         String email = candidate.getEmail();
         if (email.length() + suffix.length() > 255) {
@@ -145,9 +208,11 @@ public class CandidateService {
         applyParsedFieldsIfEmpty(candidate, parsed);
         candidate = candidateRepository.save(candidate);
 
+        List<CandidateDocument> documents =
+                documentRepository.findByCandidateIdOrderByUploadedAtDesc(candidate.getId());
         return new CvUploadResponse(
                 DocumentResponse.from(document),
-                CandidateResponse.from(candidate, List.of(document)),
+                CandidateResponse.from(candidate, documents),
                 parsed
         );
     }
@@ -165,7 +230,6 @@ public class CandidateService {
             String filename = file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
                     ? "unknown"
                     : file.getOriginalFilename();
-            // Skip blank placeholder parts Postman sometimes sends
             if ((file.getOriginalFilename() == null || file.getOriginalFilename().isBlank())
                     && file.getSize() <= 0) {
                 continue;
@@ -296,14 +360,7 @@ public class CandidateService {
 
     private Set<Tag> resolveTags(List<String> rawTags) {
         Set<Tag> tags = new HashSet<>();
-        if (rawTags == null) {
-            return tags;
-        }
-        for (String raw : rawTags) {
-            if (raw == null || raw.isBlank()) {
-                continue;
-            }
-            String name = raw.trim().toLowerCase(Locale.ROOT);
+        for (String name : TagNames.normalize(rawTags)) {
             Tag tag = tagRepository.findByNameIgnoreCase(name).orElseGet(() -> {
                 Tag created = new Tag();
                 created.setName(name);
@@ -312,5 +369,13 @@ public class CandidateService {
             tags.add(tag);
         }
         return tags;
+    }
+
+    public record StoredDocument(
+            String originalFilename,
+            String contentType,
+            long sizeBytes,
+            Resource resource
+    ) {
     }
 }

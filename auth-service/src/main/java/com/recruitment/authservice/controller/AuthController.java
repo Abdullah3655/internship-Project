@@ -6,6 +6,8 @@ import com.recruitment.authservice.dto.AuthResponse;
 import com.recruitment.authservice.dto.LoginRequest;
 import com.recruitment.authservice.dto.RefreshRequest;
 import com.recruitment.authservice.dto.RegisterRequest;
+import com.recruitment.authservice.dto.UpdateManagedUserRequest;
+import com.recruitment.authservice.dto.UserListResponse;
 import com.recruitment.authservice.dto.UserResponse;
 import com.recruitment.authservice.security.UserPrincipal;
 import com.recruitment.authservice.service.AuthService;
@@ -20,10 +22,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -93,14 +97,37 @@ public class AuthController {
         return authService.refresh(request.refreshToken());
     }
 
+    @PostMapping(path = "/logout", version = "1.0")
+    @SecurityRequirements
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
+    }
+
     @GetMapping(path = "/me", version = "1.0")
     public UserResponse me(@AuthenticationPrincipal UserPrincipal principal) {
         return authService.toUserResponse(principal.getUser());
+    }
+
+    @GetMapping(path = "/users", version = "1.0")
+    @PreAuthorize("hasAnyRole('HR','ADMIN')")
+    public UserListResponse listUsers(@RequestParam(required = false) UserRole role) {
+        return authService.listUsers(role);
     }
 
     @GetMapping(path = "/users/{id}", version = "1.0")
     @PreAuthorize("hasAnyRole('HR','ADMIN')")
     public UserResponse getUserById(@PathVariable UUID id) {
         return authService.getById(id);
+    }
+
+    @PatchMapping(path = "/users/{id}", version = "1.0")
+    @PreAuthorize("hasRole('ADMIN')")
+    public UserResponse updateManagedUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateManagedUserRequest request,
+            @AuthenticationPrincipal UserPrincipal actor
+    ) {
+        return authService.updateManagedUser(id, request, actor);
     }
 }

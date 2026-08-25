@@ -14,8 +14,6 @@ import com.recruitment.applicationservice.repository.ApplicationRepository;
 import com.recruitment.applicationservice.repository.ApplicationStageEventRepository;
 import com.recruitment.applicationservice.repository.JobRepository;
 import com.recruitment.applicationservice.repository.TagRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -26,13 +24,13 @@ import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Component
 @Profile("!test")
 public class DemoHiringSeeder implements ApplicationRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoHiringSeeder.class);
 
     private final JobRepository jobRepository;
     private final TagRepository tagRepository;
@@ -57,12 +55,7 @@ public class DemoHiringSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        Job job = seedPublishedJob();
-        Application application = seedApplication(job);
-        seedAssignment(application);
-        log.info("Demo job ready: {} ({})", job.getTitle(), DemoIds.JAVA_JOB);
-        log.info("Demo application ready: Alice -> Java Engineer at INTERVIEW ({})", DemoIds.ALICE_APPLICATION);
-        log.info("Demo assignment ready: interviewer user {}", DemoIds.INTERVIEWER_USER);
+        seedAssignment(seedApplication(seedPublishedJob()));
     }
 
     private Job seedPublishedJob() {
@@ -83,38 +76,43 @@ public class DemoHiringSeeder implements ApplicationRunner {
     }
 
     private Application seedApplication(Job job) {
-        return applicationRepository.findById(DemoIds.ALICE_APPLICATION).orElseGet(() -> {
-            Application application = new Application();
-            application.setId(DemoIds.ALICE_APPLICATION);
-            application.setJob(job);
-            application.setCandidateId(DemoIds.ALICE_CANDIDATE);
-            application.setCurrentStage(PipelineStage.INTERVIEW);
-            application = applicationRepository.save(application);
+        Optional<Application> existing = applicationRepository.findById(DemoIds.ALICE_APPLICATION)
+                .or(() -> applicationRepository.findByJobIdAndCandidateId(job.getId(), DemoIds.ALICE_CANDIDATE));
+        if (existing.isPresent()) {
+            return existing.get();
+        }
 
-            ApplicationStageEvent applied = new ApplicationStageEvent();
-            applied.setId(DemoIds.ALICE_STAGE_APPLIED);
-            applied.setApplication(application);
-            applied.setFromStage(null);
-            applied.setToStage(PipelineStage.APPLIED);
-            applied.setChangedByUserId(DemoIds.HR_USER);
-            applied.setNote("Application created");
-            stageEventRepository.save(applied);
+        Application application = new Application();
+        application.setId(DemoIds.ALICE_APPLICATION);
+        application.setJob(job);
+        application.setCandidateId(DemoIds.ALICE_CANDIDATE);
+        application.setCurrentStage(PipelineStage.INTERVIEW);
+        application = applicationRepository.save(application);
 
-            ApplicationStageEvent interview = new ApplicationStageEvent();
-            interview.setId(DemoIds.ALICE_STAGE_INTERVIEW);
-            interview.setApplication(application);
-            interview.setFromStage(PipelineStage.APPLIED);
-            interview.setToStage(PipelineStage.INTERVIEW);
-            interview.setChangedByUserId(DemoIds.HR_USER);
-            interview.setNote("Passed screening");
-            stageEventRepository.save(interview);
+        ApplicationStageEvent applied = new ApplicationStageEvent();
+        applied.setId(DemoIds.ALICE_STAGE_APPLIED);
+        applied.setApplication(application);
+        applied.setFromStage(null);
+        applied.setToStage(PipelineStage.APPLIED);
+        applied.setChangedByUserId(DemoIds.HR_USER);
+        applied.setNote("Application created");
+        stageEventRepository.save(applied);
 
-            return application;
-        });
+        ApplicationStageEvent interview = new ApplicationStageEvent();
+        interview.setId(DemoIds.ALICE_STAGE_INTERVIEW);
+        interview.setApplication(application);
+        interview.setFromStage(PipelineStage.APPLIED);
+        interview.setToStage(PipelineStage.INTERVIEW);
+        interview.setChangedByUserId(DemoIds.HR_USER);
+        interview.setNote("Passed screening");
+        stageEventRepository.save(interview);
+
+        return application;
     }
 
     private void seedAssignment(Application application) {
-        if (assignmentRepository.existsByApplicationIdAndUserIdAndAssignmentRole(
+        if (assignmentRepository.existsById(DemoIds.ALICE_ASSIGNMENT)
+                || assignmentRepository.existsByApplicationIdAndUserIdAndAssignmentRole(
                 application.getId(),
                 DemoIds.INTERVIEWER_USER,
                 AssignmentRole.INTERVIEWER

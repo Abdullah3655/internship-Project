@@ -8,11 +8,15 @@ import com.recruitment.authservice.domain.UserRole;
 import com.recruitment.authservice.dto.AuthResponse;
 import com.recruitment.authservice.dto.LoginRequest;
 import com.recruitment.authservice.dto.RegisterRequest;
+import com.recruitment.authservice.dto.UserListResponse;
 import com.recruitment.authservice.dto.UserResponse;
+import com.recruitment.authservice.dto.UpdateManagedUserRequest;
+import com.recruitment.authservice.exception.BadRequestException;
 import com.recruitment.authservice.exception.EmailAlreadyExistsException;
 import com.recruitment.authservice.exception.InvalidCredentialsException;
 import com.recruitment.authservice.exception.InvalidRefreshTokenException;
 import com.recruitment.authservice.exception.UserNotFoundException;
+import com.recruitment.authservice.security.UserPrincipal;
 import com.recruitment.authservice.repository.RefreshTokenRepository;
 import com.recruitment.authservice.repository.UserRepository;
 import com.recruitment.authservice.security.JwtService;
@@ -149,11 +153,60 @@ public class AuthService {
         return issueTokens(user);
     }
 
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        refreshTokenRepository.deleteByTokenHash(hashToken(refreshToken));
+    }
+
     @Transactional(readOnly = true)
     public UserResponse getById(UUID id) {
         User user = userRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
         return UserResponse.from(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserListResponse listUsers(UserRole role) {
+        var users = role == null
+                ? userRepository.findByDeletedAtIsNullOrderByLastNameAscFirstNameAsc()
+                : userRepository.findByRoleAndDeletedAtIsNullOrderByLastNameAscFirstNameAsc(role);
+        return new UserListResponse(users.stream().map(UserResponse::from).toList());
+    }
+
+    @Transactional
+    public UserResponse updateManagedUser(UUID targetId, UpdateManagedUserRequest request, UserPrincipal actor) {
+        if (actor.getId().equals(targetId)) {
+            throw new BadRequestException("You cannot change your own role or status");
+        }
+
+        User target = userRepository.findByIdAndDeletedAtIsNull(targetId)
+                .orElseThrow(() -> new UserNotFoundException(targetId));
+
+        if (target.getRole() == UserRole.ADMIN) {
+            throw new BadRequestException("Admin accounts cannot be modified");
+        }
+
+        UserRole newRole = request.role();
+        if (newRole != UserRole.HR && newRole != UserRole.INTERVIEWER) {
+            throw new BadRequestException("Role can only be HR or INTERVIEWER");
+        }
+
+        AccountStatus newStatus = request.accountStatus();
+        boolean disabling = newStatus == AccountStatus.DISABLED
+                && target.getAccountStatus() == AccountStatus.ACTIVE;
+
+        target.setRole(newRole);
+        target.setAccountStatus(newStatus);
+        userRepository.save(target);
+
+        if (disabling) {
+            refreshTokenRepository.deleteByUser_Id(target.getId());
+        }
+
+        return UserResponse.from(target);
     }
 
     public UserResponse toUserResponse(User user) {

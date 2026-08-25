@@ -28,9 +28,6 @@ public class LdapUserProvisioner {
         this.ldapTemplate = ldapTemplate;
     }
 
-    /**
-     * Creates an inetOrgPerson in OpenLDAP and returns the full DN.
-     */
     public String createUser(String email, String password, String firstName, String lastName) {
         if (!ldapProperties.isEnabled()) {
             throw new LdapProvisioningException("LDAP is not enabled");
@@ -62,7 +59,6 @@ public class LdapUserProvisioner {
 
         try {
             template.bind(context);
-            log.info("Created LDAP user {}", fullDn);
             return fullDn;
         } catch (NameAlreadyBoundException ex) {
             throw new EmailAlreadyExistsException(email);
